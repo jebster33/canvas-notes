@@ -1,0 +1,25 @@
+# dependencies & build output
+node_modules
+dist
+src-tauri/target
+src-tauri/gen
+
+# local tooling / editor
+.claude/settings.local.json
+.vscode/
+.idea/
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
+
+# secrets and personal data never belong in the repo
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+
+# exported boards/settings can contain private notes
+*.canvasboard
+*.canvastheme
