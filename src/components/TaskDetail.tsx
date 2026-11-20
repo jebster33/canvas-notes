@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { X, LayoutDashboard, Trash2, Bell, Calendar, User, Flag, Tag, MessageSquare, AlignLeft, Plus, Check } from "lucide-react";
 import { useStore } from "../lib/store";
-import type { Priority, Reminder, TaskData } from "../lib/types";
-import { PRIORITY, StatusPicker, ProgressBar } from "../cards/TaskBody";
+import type { TaskData } from "../lib/types";
+import { StatusPicker, ProgressBar, remindOptions, priorityOptions } from "../cards/TaskBody";
+import { Select } from "./ui";
 import { RichText } from "../cards/RichText";
 import { statusMeta, withProgress, withStatus } from "../lib/status";
 import { patchNodeIn, deleteNodeIn } from "../lib/taskops";
@@ -130,21 +131,13 @@ export function TaskDetail() {
             </div>
 
             <label><Bell size={13} />Reminder</label>
-            <select className="field" value={t.remind ?? "due"} disabled={!t.due} onChange={(e) => setTask({ remind: e.target.value as Reminder })}>
-              <option value="none">No reminder</option>
-              <option value="due">{t.time ? "At due time" : "On the day"}</option>
-              <option value="15m">15 minutes before</option>
-              <option value="1h">1 hour before</option>
-              <option value="1d">1 day before</option>
-            </select>
+            <Select className="field" value={t.remind ?? "due"} disabled={!t.due} options={remindOptions(!!t.time)} onChange={(v) => setTask({ remind: v })} title="Reminder" />
 
             <label><Calendar size={13} />Start</label>
             <input className="field" type="date" value={t.start ?? ""} onChange={(e) => setTask({ start: e.target.value || undefined })} />
 
             <label><Flag size={13} />Priority</label>
-            <select className="field" value={t.priority} onChange={(e) => setTask({ priority: e.target.value as Priority })} style={{ color: PRIORITY[t.priority].color, fontWeight: 600 }}>
-              {(Object.keys(PRIORITY) as Priority[]).map((p) => <option key={p} value={p}>{PRIORITY[p].label}</option>)}
-            </select>
+            <Select className="field strong" colorText value={t.priority} options={priorityOptions()} onChange={(v) => setTask({ priority: v })} title="Priority" />
 
             <label><Tag size={13} />Tags</label>
             <div className="td-tags">

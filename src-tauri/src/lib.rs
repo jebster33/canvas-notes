@@ -9,6 +9,7 @@
 //! due-date reminders and the quick-capture hotkey keep working.
 
 mod preview;
+mod updater;
 
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use serde::{Deserialize, Serialize};
@@ -33,11 +34,13 @@ struct Config {
     vault: Option<String>,
     close_to_tray: bool,
     capture_shortcut: String,
+    /// Install new GitHub releases automatically on startup.
+    auto_update: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Config { vault: None, close_to_tray: true, capture_shortcut: DEFAULT_SHORTCUT.into() }
+        Config { vault: None, close_to_tray: true, capture_shortcut: DEFAULT_SHORTCUT.into(), auto_update: false }
     }
 }
 
@@ -353,12 +356,38 @@ fn open_url(app: AppHandle, url: String) -> CmdResult<()> {
 struct Prefs {
     close_to_tray: bool,
     capture_shortcut: String,
+    auto_update: bool,
+    version: String,
 }
 
 #[tauri::command]
 fn get_prefs(state: State<AppState>) -> Prefs {
     let c = state.config.lock().unwrap();
-    Prefs { close_to_tray: c.close_to_tray, capture_shortcut: c.capture_shortcut.clone() }
+    Prefs {
+        close_to_tray: c.close_to_tray,
+        capture_shortcut: c.capture_shortcut.clone(),
+        auto_update: c.auto_update,
+        version: env!("CARGO_PKG_VERSION").into(),
+    }
+}
+
+#[tauri::command]
+fn set_auto_update(on: bool, state: State<AppState>) -> CmdResult<()> {
+    state.config.lock().unwrap().auto_update = on;
+    state.save_config()
+}
+
+#[tauri::command]
+async fn check_update() -> CmdResult<updater::UpdateInfo> {
+    tauri::async_runtime::spawn_blocking(updater::check).await.map_err(err)?
+}
+
+/// Download + verify + swap the exe, then quit so the new version can start.
+#[tauri::command]
+async fn install_update(app: AppHandle, url: String, sha256: Option<String>) -> CmdResult<()> {
+    tauri::async_runtime::spawn_blocking(move || updater::install(&url, sha256.as_deref())).await.map_err(err)??;
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -428,6 +457,7 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            updater::cleanup_old();
             let config_dir = app.path().app_config_dir()?;
             fs::create_dir_all(&config_dir)?;
             let config_path = config_dir.join("config.json");
@@ -527,6 +557,9 @@ pub fn run() {
             get_prefs,
             set_close_to_tray,
             set_capture_shortcut,
+            set_auto_update,
+            check_update,
+            install_update,
             quit_app
         ])
         .run(tauri::generate_context!())

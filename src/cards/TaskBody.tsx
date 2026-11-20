@@ -3,6 +3,7 @@ import type { Board, CardNode, Priority, Reminder, TaskData } from "../lib/types
 import { selectBoard, useStore } from "../lib/store";
 import { boardStatuses, isDoneStatus, statusMeta, withProgress, withStatus } from "../lib/status";
 import { RichText } from "./RichText";
+import { Select, type SelectOption } from "../components/ui";
 
 export const PRIORITY: Record<Priority, { label: string; color: string }> = {
   low: { label: "Low", color: "#5B9BD5" },
@@ -12,6 +13,16 @@ export const PRIORITY: Record<Priority, { label: string; color: string }> = {
 };
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
+export const remindOptions = (hasTime: boolean): SelectOption<Reminder>[] => [
+  { value: "none", label: "No reminder" },
+  { value: "due", label: hasTime ? "At due time" : "On the day" },
+  { value: "15m", label: "15 minutes before" },
+  { value: "1h", label: "1 hour before" },
+  { value: "1d", label: "1 day before" },
+];
+export const priorityOptions = (): SelectOption<Priority>[] =>
+  (Object.keys(PRIORITY) as Priority[]).map((p) => ({ value: p, label: PRIORITY[p].label, color: PRIORITY[p].color }));
 
 export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }) {
   const patchNode = useStore((s) => s.patchNode);
@@ -46,13 +57,7 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
         {t.due && (
           <>
             <label>Remind</label>
-            <select value={t.remind ?? "due"} onChange={(e) => set({ remind: e.target.value as Reminder })} title="When to send a reminder">
-              <option value="none">No reminder</option>
-              <option value="due">{t.time ? "At due time" : "On the day"}</option>
-              <option value="15m">15 minutes before</option>
-              <option value="1h">1 hour before</option>
-              <option value="1d">1 day before</option>
-            </select>
+            <Select compact className="meta-sel" value={t.remind ?? "due"} options={remindOptions(!!t.time)} onChange={(v) => set({ remind: v })} title="When to send a reminder" />
           </>
         )}
         {(t.start || editing) && (
@@ -62,11 +67,7 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
           </>
         )}
         <label>Priority</label>
-        <select value={t.priority} onChange={(e) => set({ priority: e.target.value as Priority })} style={{ color: PRIORITY[t.priority].color, fontWeight: 600 }}>
-          {(Object.keys(PRIORITY) as Priority[]).map((p) => (
-            <option key={p} value={p}>{PRIORITY[p].label}</option>
-          ))}
-        </select>
+        <Select compact colorText className="meta-sel strong" value={t.priority} options={priorityOptions()} onChange={(v) => set({ priority: v })} title="Priority" />
       </div>
       <RichText nodeId={node.id} html={node.html} editing={editing} placeholder="Add details…" onChange={(html) => patchNode(node.id, { html })} />
     </>

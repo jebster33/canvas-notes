@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { X, Plus, Upload, ArrowRight, Keyboard, Bell, LayoutDashboard } from "lucide-react";
+import { X, Plus, Upload, ArrowRight, Keyboard, Bell, LayoutDashboard, Settings } from "lucide-react";
+import { useAppSettingsDialog } from "./AppSettingsDialog";
+import { useUpdates } from "../lib/updates";
 import { useStore } from "../lib/store";
 import { importBoardFile } from "../lib/transfer";
 import { upcoming } from "../lib/reminders";
 import { WsBadge } from "./Workspaces";
+import logoMark from "../assets/logo-mark.png";
 
 function ago(t: number) {
   const d = Date.now() - t;
@@ -30,12 +33,13 @@ export function HomeScreen() {
   const activeWs = useStore((s) => s.activeWs);
   const { setHome, openWorkspace, openBoard, createWorkspace, createBoard, setNotifOpen } = useStore.getState();
   const [naming, setNaming] = useState(false);
+  const updateReady = useUpdates((s) => s.status === "available");
   const [name, setName] = useState("");
 
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !naming) { e.stopPropagation(); setHome(false); }
+      if (e.key === "Escape" && !naming && !useAppSettingsDialog.getState().open) { e.stopPropagation(); setHome(false); }
     };
     window.addEventListener("keydown", k, true);
     return () => window.removeEventListener("keydown", k, true);
@@ -58,11 +62,16 @@ export function HomeScreen() {
       <div className="home-top" data-tauri-drag-region>
         <div className="brand" data-tauri-drag-region>
           <span className="brand-mark">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="6" height="5" rx="1.5" fill="#fff" /><rect x="9" y="9" width="6" height="5" rx="1.5" fill="#fff" fillOpacity=".55" /><path d="M7 4.5C10 4.5 9 11.5 9 11.5" stroke="#fff" strokeWidth="1.4" /></svg>
+            <img src={logoMark} alt="" width={15} height={15} draggable={false} />
           </span>
           Canvas Notes
         </div>
-        <button className="btn home-close" onClick={() => setHome(false)} title="Close (Esc)"><X size={16} />Close</button>
+        <div className="home-top-actions">
+          <button className="btn home-settings" onClick={() => useAppSettingsDialog.getState().set(true)} title="App settings">
+            <Settings size={16} />App settings{updateReady && <span className="upd-dot" aria-label="Update available" />}
+          </button>
+          <button className="btn home-close" onClick={() => setHome(false)} title="Close (Esc)"><X size={16} />Close</button>
+        </div>
       </div>
 
       <div className="home-inner">

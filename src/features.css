@@ -387,3 +387,54 @@ body.capture-body { background: transparent; }
 .home-tip svg { flex: none; margin-top: 2px; }
 .home-foot { color: var(--faint); font-size: 12px; text-align: center; margin-top: 8px; }
 @media (max-width: 760px) { .home-cols { grid-template-columns: 1fr; } .home-hello { font-size: 32px; } }
+
+/* ---------- custom dropdown ---------- */
+.sel {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 9px 0 10px; min-width: 0; max-width: 100%;
+  border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+  cursor: pointer; text-align: left; transition: border-color 0.15s, background 0.15s;
+}
+.sel.field { width: 100%; }
+.sel:hover { border-color: var(--line-2); }
+.sel.open, .sel:focus-visible { border-color: var(--accent); outline: none; }
+.sel:disabled { opacity: 0.45; cursor: default; }
+.sel.compact { height: 26px; font-size: 12px; padding: 0 7px 0 8px; gap: 6px; }
+.sel-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-chev { flex: none; color: var(--faint); transition: transform 0.15s var(--ease); }
+.sel.open .sel-chev { transform: rotate(180deg); color: var(--accent-2); }
+.sel-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.sel.strong .sel-val { font-weight: 600; }
+.w160 { width: 170px !important; }
+.sel-list { position: fixed; z-index: 120; padding: 4px; overflow-y: auto; font-size: 13px; color: var(--text); font-style: normal; font-weight: 400; text-decoration: none; text-align: left; }
+.sel-opt { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 4px 9px; border-radius: 6px; cursor: pointer; color: var(--muted); }
+.sel-opt span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-opt.hi { background: var(--panel-3); color: var(--text); }
+.sel-opt.on { color: var(--text); }
+.sel-check { color: var(--accent-2); flex: none; }
+/* In the floating card bar and inside task cards the dropdown sits flush. */
+.float-bar .sel.bar-sel { width: 140px; background: transparent; border-color: transparent; }
+.float-bar .sel.bar-sel:hover, .float-bar .sel.bar-sel.open { border-color: var(--line-2); }
+.task-meta .sel.meta-sel { background: transparent; border-color: transparent; height: 22px; padding: 0 5px; color: inherit; font-size: 12px; justify-self: start; }
+.task-meta .sel.meta-sel:hover, .task-meta .sel.meta-sel.open { border-color: rgba(255, 255, 255, 0.12); }
+.task-meta .sel.meta-sel .sel-chev { color: currentColor; opacity: 0.5; }
+.chart-ctl .sel.field, .code-bar .sel.field { width: auto; max-width: 160px; }
+.link-body .sel.field { height: 34px; }
+
+/* ---------- updates & app settings window ---------- */
+.upd-card { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 8px; }
+.upd-card.ready { border-color: var(--accent); background: linear-gradient(135deg, rgba(139, 124, 246, 0.12), var(--panel)); }
+.upd-card.bad small { color: var(--danger); }
+.upd-ver { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.upd-ver b { font-weight: 600; }
+.upd-ver small { color: var(--faint); font-size: 12px; line-height: 1.4; }
+.upd-notes { white-space: pre-wrap; font-size: 12px; color: var(--muted); background: var(--panel); border-radius: 8px; padding: 8px 10px; max-height: 140px; overflow-y: auto; margin: 0 0 8px; user-select: text; }
+.link-btn { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.home-top-actions { display: flex; gap: 6px; }
+.home-settings { position: relative; gap: 6px; }
+.upd-dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+.app-settings-scrim { z-index: 95; padding-top: 8vh; }
+.app-settings { width: 460px; max-width: calc(100vw - 32px); max-height: 82vh; display: flex; flex-direction: column; overflow: hidden; align-self: flex-start; }
+.app-settings .sp-head { padding-top: 12px !important; }
+.app-settings .sp-head h3 { display: flex; align-items: center; gap: 8px; }

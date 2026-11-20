@@ -1,15 +1,41 @@
-# Canvas Notes
+<p align="center"><img src="docs/icon.png" width="96" alt="Canvas Notes icon"></p>
 
-A dark 2D brainstorming workspace: infinite canvas boards with cards, connectors, drawing, a graph view across all boards, and board-wide "sheet settings". Built with Tauri 2 (Rust) + React.
+<h1 align="center">Canvas Notes</h1>
 
-## Run
+<p align="center">A dark 2D brainstorming workspace for Windows: infinite canvas boards with cards, connectors, drawing, tables, charts, task boards, reminders and workspaces. Built with Tauri 2 (Rust) + React.</p>
+
+![Canvas with notes, tasks, a budget table, a chart and a frame](docs/screenshots/canvas.png)
+
+## Download
+
+Grab the latest version from [Releases](https://github.com/jebster33/canvas-notes/releases/latest):
+
+- **`CanvasNotes-portable.exe`**: a single file, no install. Put it anywhere and run it.
+- **`Canvas.Notes_x.y.z_x64-setup.exe`**: a normal installer with a Start menu entry.
+
+The app can update itself from GitHub Releases (App settings → Updates). Turn on **Update automatically** to install new versions when the app starts.
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Trello-style board view](docs/screenshots/board-view.png) | ![Task detail card](docs/screenshots/task-detail.png) |
+| **Board view**: your own lists, drag tasks between them | **Task detail**: everything about a task, with Go to canvas |
+| ![Timeline view](docs/screenshots/timeline.png) | ![Graph view](docs/screenshots/graph.png) |
+| **Timeline**: drag bars to reschedule | **Graph**: how cards and boards link together |
+| ![Sheet settings with board themes](docs/screenshots/themes.png) | ![Start menu](docs/screenshots/start-menu.png) |
+| **Themes and sheet settings** for the whole board | **Start menu** with workspaces and recent boards |
+
+## Build it yourself
 
 ```powershell
 npm install
 npm run app        # dev window with hot reload
-npm run release    # builds the installer into src-tauri/target/release/bundle/nsis
+npm run release    # builds the app into src-tauri/target/release (and an installer in bundle/nsis)
 npm run dev        # browser-only preview at http://localhost:1420 (uses browser storage)
 ```
+
+Screenshots are made by `node scripts/screenshots.mjs` (with `npm run dev` running): it builds a demo workspace in a hidden Edge window and saves `docs/screenshots/*.png`.
 
 ## Where your notes live
 

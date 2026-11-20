@@ -5,6 +5,7 @@ import { selectBoard, useStore } from "../lib/store";
 import { readAsset } from "../lib/storage";
 import { ingestImage } from "../lib/transfer";
 import { RichText } from "./RichText";
+import { Select } from "../components/ui";
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -67,21 +68,21 @@ export function LinkBody({ node }: { node: CardNode }) {
           <ArrowUpRight size={14} style={{ marginLeft: "auto", flex: "none" }} />
         </div>
       ) : null}
-      <select
-        className="field"
-        value={node.link?.boardId ?? ""}
-        onChange={(e) => {
-          const b = boards[e.target.value];
-          patchNode(node.id, { link: { boardId: e.target.value }, title: b ? b.name : node.title });
-        }}
-        style={{ flex: target ? "0 0 32px" : 1, padding: target ? "0 4px" : undefined }}
-        title="Choose which board this links to"
-      >
-        <option value="">{target ? "" : "Link to a board…"}</option>
-        {others.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-      </select>
+      <div style={{ flex: target ? "0 0 auto" : 1, minWidth: 0 }}>
+        <Select
+          compact
+          className="field"
+          value={node.link?.boardId ?? ""}
+          placeholder={target ? "Change" : "Link to a board…"}
+          minWidth={180}
+          options={others.map((b) => ({ value: b.id, label: b.name, color: b.color }))}
+          onChange={(v) => {
+            const b = boards[v];
+            patchNode(node.id, { link: { boardId: v }, title: b ? b.name : node.title });
+          }}
+          title="Choose which board this links to"
+        />
+      </div>
     </div>
   );
 }

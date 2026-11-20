@@ -12,6 +12,10 @@ export const FONTS: { label: string; value: string }[] = [
 ];
 
 /** Card color swatches tuned to stay legible on the graphite canvas. */
+/** Font picker options; each shows in its own typeface. */
+export const FONT_OPTIONS = () => FONTS.map((f) => ({ value: f.value, label: f.label, style: { fontFamily: f.value } }));
+export const fontValue = (family: string) => FONTS.find((f) => f.value === family)?.value ?? FONTS[0].value;
+
 export const SWATCHES = [
   "#1B1C23", "#24252E", "#2B2340", "#1F2A3D", "#1E3330", "#33291C", "#3A2228", "#2E2E1C",
 ];

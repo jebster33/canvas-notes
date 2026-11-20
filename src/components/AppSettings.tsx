@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Bell, Keyboard, MonitorUp, Power } from "lucide-react";
+import { Bell, Keyboard, MonitorUp, Power, RefreshCw, Download, ExternalLink } from "lucide-react";
+import { useUpdates } from "../lib/updates";
+import { openUrl } from "../lib/storage";
 import { useReminders } from "../lib/reminders";
 import { invokeSafe, isTauri } from "../lib/storage";
 import { useStore } from "../lib/store";
@@ -27,12 +29,17 @@ export function AppSettings() {
   const [autostart, setAutostart] = useState(false);
   const [shortcut, setShortcut] = useState("CommandOrControl+Shift+Space");
   const [recording, setRecording] = useState(false);
+  const [autoUpdate, setAutoUpdate] = useState(false);
+  const [version, setVersion] = useState("");
+  const upd = useUpdates();
 
   useEffect(() => {
-    invokeSafe<{ close_to_tray: boolean; capture_shortcut: string }>("get_prefs").then((p) => {
+    invokeSafe<{ close_to_tray: boolean; capture_shortcut: string; auto_update: boolean; version: string }>("get_prefs").then((p) => {
       if (p) {
         setTray(p.close_to_tray);
         setShortcut(p.capture_shortcut);
+        setAutoUpdate(p.auto_update);
+        setVersion(p.version);
       }
     });
     if (isTauri) import("@tauri-apps/plugin-autostart").then((a) => a.isEnabled().then(setAutostart)).catch(() => {});
@@ -62,9 +69,42 @@ export function AppSettings() {
     return () => window.removeEventListener("keydown", k, true);
   }, [recording, flash]);
 
+  const statusLine =
+    upd.status === "checking" ? "Checking GitHub…"
+    : upd.status === "installing" ? `Downloading ${upd.info?.latest}… the app will restart by itself`
+    : upd.status === "available" ? `Version ${upd.info?.latest} is ready to install`
+    : upd.status === "uptodate" ? "You're on the latest version"
+    : upd.status === "error" ? upd.error
+    : "Not checked yet";
+
   return (
     <>
       <div className="sp-group" style={{ paddingTop: 10 }}>
+        <h4><RefreshCw size={14} />Updates</h4>
+        <div className={"upd-card" + (upd.status === "available" ? " ready" : "") + (upd.status === "error" ? " bad" : "")}>
+          <div className="upd-ver">
+            <b>Canvas Notes {version || upd.info?.current || ""}</b>
+            <small>{statusLine}</small>
+          </div>
+          {upd.status === "available" ? (
+            <button className="btn solid" onClick={() => upd.install()}><Download size={14} />Install {upd.info?.latest}</button>
+          ) : (
+            <button className="btn outline" disabled={!isTauri || upd.status === "checking" || upd.status === "installing"} onClick={() => upd.check(true)}>
+              <RefreshCw size={14} className={upd.status === "checking" ? "spin" : ""} />Check now
+            </button>
+          )}
+        </div>
+        {upd.info?.newer && upd.info.notes && <p className="upd-notes">{upd.info.notes}</p>}
+        {upd.info?.page && (
+          <button className="link-btn" onClick={() => openUrl(upd.info!.page)}><ExternalLink size={12} /> What's new on GitHub</button>
+        )}
+        {isTauri && (
+          <Row label="Update automatically" hint="When on, new versions install by themselves when the app starts. When off, you're told and can install from here.">
+            <Toggle label="Update automatically" on={autoUpdate} onChange={async (v) => { setAutoUpdate(v); await invokeSafe("set_auto_update", { on: v }); }} />
+          </Row>
+        )}
+      </div>
+      <div className="sp-group">
         <h4><Bell size={14} />Reminders</h4>
         <p className="hint">Applies to every board. Each task picks when to remind you from its own card.</p>
         <Row label="Due-date reminders"><Toggle label="Reminders" on={prefs.enabled} onChange={(v) => setPrefs({ enabled: v })} /></Row>

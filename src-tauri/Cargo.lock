@@ -423,12 +423,13 @@ dependencies = [
 
 [[package]]
 name = "canvas-notes"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
@@ -4616,6 +4617,8 @@ dependencies = [
  "once_cell",
  "rustls",
  "rustls-pki-types",
+ "serde",
+ "serde_json",
  "url",
  "webpki-roots 0.26.11",
 ]

@@ -5,14 +5,14 @@ import {
 } from "lucide-react";
 import { selectBoard, useStore } from "../lib/store";
 import { useEditorBus } from "../lib/editorBus";
-import { FONTS, INKS, STICKY, SWATCHES, resolveStyle, typeStyle } from "../lib/theme";
+import { FONT_OPTIONS, fontValue, INKS, STICKY, SWATCHES, resolveStyle, typeStyle } from "../lib/theme";
 import { CardPresetGrid } from "./Presets";
 import { ArrangeButton, TagButton, FrameBar } from "./BarExtras";
 import { edgeGeometry } from "./EdgeLayer";
 import { strokeBounds } from "../lib/geometry";
 import { canvasRect } from "../lib/viewport";
 import type { Board, CardStyle, EdgeShape } from "../lib/types";
-import { NumberField, PopButton, Swatches } from "./ui";
+import { NumberField, PopButton, Select, Swatches } from "./ui";
 
 const HIGHLIGHTS = ["#5c4d1a", "#4a2a3a", "#1f3d36", "#23334f", "#3b2f5c"];
 
@@ -90,11 +90,7 @@ function CardBar({ board }: { board: Board }) {
           <div className="sep" />
         </>
       )}
-      <select className="field" value={FONTS.find((f) => f.value === s.fontFamily)?.value ?? s.fontFamily} onChange={(e) => set({ fontFamily: e.target.value })} title="Font" style={{ maxWidth: 120 }}>
-        {FONTS.map((f) => (
-          <option key={f.label} value={f.value}>{f.label}</option>
-        ))}
-      </select>
+      <Select compact className="bar-sel" value={fontValue(s.fontFamily)} options={FONT_OPTIONS()} onChange={(v) => set({ fontFamily: v })} title="Font" minWidth={170} />
       <NumberField className="field size-input" value={s.fontSize} min={8} max={72} onChange={(v) => set({ fontSize: v, titleSize: Math.max(v, Math.round(v * 1.15)) })} />
       <div className="sep" />
       <button className={"btn icon" + (s.bold ? " on" : "")} title="Bold (whole card)" onClick={() => set({ bold: !s.bold })}><Bold size={15} /></button>

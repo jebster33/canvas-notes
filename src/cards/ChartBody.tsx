@@ -4,6 +4,7 @@ import type { CardNode, ChartData, ChartKind } from "../lib/types";
 import { selectBoard, useStore } from "../lib/store";
 import { evaluateTable } from "../lib/formula";
 import { full, colLabel, dataRows } from "../lib/table";
+import { Select } from "../components/ui";
 
 /** Categorical palette validated for the dark card surface (fixed order, never cycled). */
 export const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"];
@@ -63,10 +64,7 @@ export function ChartBody({ node, selected }: { node: CardNode; selected: boolea
     <div className="chart" onPointerDown={selected ? stop : undefined}>
       {selected && (
         <div className="chart-ctl" onPointerDown={stop} onKeyDown={stop}>
-          <select className="field" value={src?.id ?? ""} onChange={(e) => set({ source: e.target.value })} title="Table to chart">
-            {!tables.length && <option value="">Add a table card first</option>}
-            {tables.map((t) => <option key={t.id} value={t.id}>{t.title || "Table"}</option>)}
-          </select>
+          <Select compact className="field" value={src?.id ?? ""} placeholder="Add a table card first" options={tables.map((t) => ({ value: t.id, label: t.title || "Table" }))} onChange={(v) => set({ source: v })} title="Table to chart" />
           <div className="seg">
             {([["bar", BarChart3], ["line", LineChart], ["pie", PieChart]] as [ChartKind, typeof BarChart3][]).map(([k, I]) => (
               <button key={k} className={c.kind === k ? "on" : ""} onClick={() => set(k === "pie" ? { kind: k, valueCols: c.valueCols.slice(0, 1) } : { kind: k })} title={k === "pie" ? "Donut" : k[0].toUpperCase() + k.slice(1)}><I size={13} /></button>
@@ -74,9 +72,7 @@ export function ChartBody({ node, selected }: { node: CardNode; selected: boolea
           </div>
           {data && (
             <>
-              <select className="field" value={c.labelCol} onChange={(e) => set({ labelCol: Number(e.target.value) })} title="Labels from">
-                {data.columns.map((name, i) => <option key={i} value={i}>Labels: {name}</option>)}
-              </select>
+              <Select compact className="field" value={c.labelCol} options={data.columns.map((name, i) => ({ value: i, label: `Labels: ${name}` }))} onChange={(v) => set({ labelCol: v })} title="Labels from" />
               <div className="chart-cols">
                 {data.columns.map((name, i) =>
                   i === c.labelCol ? null : (

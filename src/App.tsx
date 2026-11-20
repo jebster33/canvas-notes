@@ -18,6 +18,8 @@ import { KanbanView, CalendarView, TimelineView } from "./components/TaskViews";
 import { Dialogs, openExport, openHistory } from "./components/Dialogs";
 import { TaskDetail } from "./components/TaskDetail";
 import { HomeScreen } from "./components/HomeScreen";
+import { AppSettingsDialog } from "./components/AppSettingsDialog";
+import { startupUpdateCheck } from "./lib/updates";
 import { PopButton } from "./components/ui";
 import { isTauri } from "./lib/storage";
 import { TYPE_META } from "./cards/Card";
@@ -44,7 +46,10 @@ export default function App() {
   const [sidebar, setSidebar] = useState(() => localStorage.getItem("cn.sidebar") !== "0");
 
   useEffect(() => {
-    useStore.getState().init().then(startReminders).catch((e) => useStore.getState().flash("Couldn't open the vault: " + e));
+    useStore.getState().init().then(() => {
+      startReminders();
+      setTimeout(startupUpdateCheck, 3000);
+    }).catch((e) => useStore.getState().flash("Couldn't open the vault: " + e));
     const flush = () => flushSaves();
     window.addEventListener("beforeunload", flush);
     return () => window.removeEventListener("beforeunload", flush);
@@ -204,6 +209,7 @@ export default function App() {
       <Dialogs />
       <TaskDetail />
       <HomeScreen />
+      <AppSettingsDialog />
       {toast && <div className="toast pop" role="status">{toast}</div>}
     </div>
   );

@@ -5,13 +5,13 @@ import {
 import { selectBoard, useStore } from "../lib/store";
 import type { CardStyle, CardType, EdgeShape, Theme } from "../lib/types";
 import { CARD_TYPES } from "../lib/types";
-import { DEFAULT_THEME, FONTS, INKS, STICKY, SWATCHES, applyPreset, typeStyle } from "../lib/theme";
+import { DEFAULT_THEME, FONT_OPTIONS, fontValue, INKS, STICKY, SWATCHES, applyPreset, typeStyle } from "../lib/theme";
 import { BoardPresetGrid, CardPresetGrid, MiniCard } from "./Presets";
 import { AppSettings } from "./AppSettings";
 import { openExport, openHistory } from "./Dialogs";
 import { TYPE_META } from "../cards/Card";
 import { exportBoard, exportTheme, importBoardFile, importTheme } from "../lib/transfer";
-import { Seg, Swatches, Toggle } from "./ui";
+import { Select, Seg, Swatches, Toggle } from "./ui";
 
 type Tab = "themes" | "text" | "cards" | "canvas" | "lines" | "board" | "app";
 type Scope = "all" | CardType;
@@ -22,6 +22,7 @@ function Range({ value, min, max, step = 1, onChange, unit = "" }: { value: numb
     <>
       <input
         type="range" min={min} max={max} step={step} value={value}
+        style={{ ["--pct" as string]: `${((value - min) / (max - min || 1)) * 100}%` }}
         onPointerDown={beginGesture} onPointerUp={endGesture}
         onChange={(e) => onChange(Number(e.target.value))}
       />
@@ -72,12 +73,8 @@ export function SettingsPanel() {
   const scopePicker = (
     <div className="sp-group" style={{ paddingTop: 10 }}>
       <Row label="Applies to">
-        <select className="field" value={scope} onChange={(e) => setScope(e.target.value as Scope)} style={{ width: 160 }}>
-          <option value="all">All cards</option>
-          {CARD_TYPES.map((ct) => (
-            <option key={ct} value={ct}>{TYPE_META[ct].label} cards</option>
-          ))}
-        </select>
+        <Select<Scope> className="field w160" value={scope} onChange={setScope} title="Which cards these settings change"
+          options={[{ value: "all", label: "All cards" }, ...CARD_TYPES.map((ct) => ({ value: ct as Scope, label: `${TYPE_META[ct].label} cards` }))]} />
       </Row>
       <MiniCard s={cur} className="type-preview" title={scope === "all" ? "Every card" : TYPE_META[scope].label + " card"}>
         <span style={{ fontSize: cur.fontSize }}>Preview of how cards look with these settings.</span>
@@ -120,9 +117,7 @@ export function SettingsPanel() {
             <div className="sp-group">
               <h4>Font</h4>
               <Row label="Typeface">
-                <select className="field" value={FONTS.find((f) => f.value === cur.fontFamily)?.value ?? cur.fontFamily} onChange={(e) => setCard({ fontFamily: e.target.value })} style={{ width: 160 }}>
-                  {FONTS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
-                </select>
+                <Select className="field w160" value={fontValue(cur.fontFamily)} options={FONT_OPTIONS()} onChange={(v) => setCard({ fontFamily: v })} title="Typeface" />
               </Row>
               <Row label="Text size"><Range value={cur.fontSize} min={10} max={28} onChange={(v) => setCard({ fontSize: v })} /></Row>
               <Row label="Title size"><Range value={cur.titleSize} min={11} max={40} onChange={(v) => setCard({ titleSize: v })} /></Row>

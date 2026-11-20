@@ -19,6 +19,7 @@ import markdown from "highlight.js/lib/languages/markdown";
 import powershell from "highlight.js/lib/languages/powershell";
 import type { CardNode, WebData } from "../lib/types";
 import { useStore } from "../lib/store";
+import { Select } from "../components/ui";
 import { fetchPreview, openUrl, openAsset, readAsset, saveAssetCopy, pickFileAsset, saveFileBlob } from "../lib/storage";
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -155,9 +156,7 @@ export function CodeBody({ node, editing }: { node: CardNode; editing: boolean }
   return (
     <div className="code">
       <div className="code-bar" onPointerDown={stop}>
-        <select className="field" value={c.lang} onChange={(e) => patchNode(node.id, { code: { ...c, lang: e.target.value } })}>
-          {Object.entries(LANGS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-        </select>
+        <Select compact className="field" value={c.lang} options={Object.entries(LANGS).map(([k, v]) => ({ value: k, label: v.label }))} onChange={(v) => patchNode(node.id, { code: { ...c, lang: v } })} title="Language" />
         <button className="btn" title="Copy code" onClick={async () => { await navigator.clipboard.writeText(c.text); setCopied(true); setTimeout(() => setCopied(false), 1200); }}>
           {copied ? <Check size={13} /> : <Copy size={13} />}
         </button>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Search, Waypoints, MoreHorizontal, Pencil, Copy, Download, Trash2, Upload, FolderOpen, Camera, History, Home, ArrowRightLeft } from "lucide-react";
 import { WorkspaceSwitcher } from "./Workspaces";
+import logoMark from "../assets/logo-mark.png";
 import { useStore, uid } from "../lib/store";
 import { INKS } from "../lib/theme";
 import { exportBoard, importBoardFile } from "../lib/transfer";
@@ -30,7 +31,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       <div className="sb-head" data-tauri-drag-region>
         <div className="brand" data-tauri-drag-region>
           <span className="brand-mark">
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="6" height="5" rx="1.5" fill="#fff" /><rect x="9" y="9" width="6" height="5" rx="1.5" fill="#fff" fillOpacity=".55" /><path d="M7 4.5C10 4.5 9 11.5 9 11.5" stroke="#fff" strokeWidth="1.4" /></svg>
+            <img src={logoMark} alt="" width={15} height={15} draggable={false} />
           </span>
           Canvas Notes
         </div>

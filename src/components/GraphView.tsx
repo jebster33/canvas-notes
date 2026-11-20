@@ -41,7 +41,7 @@ export function GraphView() {
   const [colorBy, setColorBy] = useState<"type" | "board">("type");
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [tip, setTip] = useState<{ x: number; y: number; n: GNode } | null>(null);
-  const state = useRef({ k: 1, tx: 0, ty: 0, hover: null as GNode | null, drag: null as GNode | null });
+  const state = useRef({ k: 1, tx: 0, ty: 0, hover: null as GNode | null, drag: null as GNode | null, moved: false });
   const sim = useRef<Simulation<GNode, GLink> | null>(null);
 
   const graph = useMemo(() => {
@@ -119,8 +119,8 @@ export function GraphView() {
     resize();
 
     const s = forceSimulation<GNode>(nodes)
-      .force("link", forceLink<GNode, GLink>(graph.links).id((d) => d.id).distance((l) => (l.kind === "member" ? 70 : 55)).strength((l) => (l.kind === "member" ? 0.25 : 0.7)))
-      .force("charge", forceManyBody<GNode>().strength((d) => (d.kind === "board" ? -420 : -110)))
+      .force("link", forceLink<GNode, GLink>(graph.links).id((d) => d.id).distance((l) => (l.kind === "member" ? 90 : 75)).strength((l) => (l.kind === "member" ? 0.25 : 0.7)))
+      .force("charge", forceManyBody<GNode>().strength((d) => (d.kind === "board" ? -520 : -170)))
       .force("center", forceCenter(0, 0))
       .force("x", forceX(0).strength(0.03))
       .force("y", forceY(0).strength(0.03))
@@ -130,6 +130,8 @@ export function GraphView() {
     if (nodes.length && nodes[0].x !== undefined) s.alpha(0.08);
     sim.current = s;
 
+    // Dots grow only gently when zooming in, so a zoomed graph doesn't turn into big bubbles.
+    const drawR = (n: GNode) => radius(n) / Math.sqrt(Math.max(1, st.k));
     const draw = () => {
       const dpr = window.devicePixelRatio || 1;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -154,7 +156,7 @@ export function GraphView() {
       }
       ctx.setLineDash([]);
       for (const n of nodes) {
-        const r = radius(n);
+        const r = drawR(n);
         ctx.globalAlpha = lit(n) ? 1 : 0.15;
         ctx.fillStyle = color(n);
         ctx.beginPath();
@@ -175,17 +177,33 @@ export function GraphView() {
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       for (const n of nodes) {
-        const show = n.kind === "board" || st.k > 1.1 || n === focus || near?.has(n.id) || (q && match(n));
+        const show = n.kind === "board" || st.k > 2 || n === focus || near?.has(n.id) || (q && match(n));
         if (!show || (!lit(n) && !(q && match(n)))) continue;
         const fs = (n.kind === "board" ? 13 : 11) / Math.max(0.7, Math.min(st.k, 1.6));
         ctx.font = `${n.kind === "board" ? 600 : 450} ${fs}px Inter Variable, system-ui, sans-serif`;
         ctx.globalAlpha = 0.9;
         ctx.fillStyle = n.kind === "board" ? "#F2F2F7" : "#B8BAC6";
         const label = n.label.length > 32 ? n.label.slice(0, 31) + "…" : n.label;
-        ctx.fillText(label, n.x!, n.y! + radius(n) + 4);
+        ctx.fillText(label, n.x!, n.y! + drawR(n) + 4 / Math.sqrt(st.k));
       }
       ctx.globalAlpha = 1;
     };
+    // Frame the whole graph once the layout settles (unless the user already panned/zoomed).
+    const fit = () => {
+      if (st.moved || !nodes.length) return;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const n of nodes) {
+        x0 = Math.min(x0, n.x!); x1 = Math.max(x1, n.x!);
+        y0 = Math.min(y0, n.y!); y1 = Math.max(y1, n.y!);
+      }
+      const pad = 90, w = el.clientWidth, h = el.clientHeight;
+      const k = Math.max(0.3, Math.min(1.9, (w - pad * 2) / (x1 - x0 || 1), (h - pad * 2) / (y1 - y0 || 1)));
+      st.k = k;
+      st.tx = w / 2 - ((x0 + x1) / 2) * k;
+      st.ty = h / 2 - ((y0 + y1) / 2) * k;
+    };
+    const fitTimer = window.setTimeout(() => { fit(); cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }, 1600);
+    s.on("end", () => { fit(); cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); });
     s.on("tick", () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(draw);
@@ -204,13 +222,14 @@ export function GraphView() {
       let best: GNode | null = null, bd = Infinity;
       for (const n of nodes) {
         const d = Math.hypot(n.x! - p.x, n.y! - p.y);
-        if (d < radius(n) + 6 / st.k && d < bd) { best = n; bd = d; }
+        if (d < drawR(n) + 6 / st.k && d < bd) { best = n; bd = d; }
       }
       return best;
     };
 
     let down: { x: number; y: number; tx: number; ty: number; node: GNode | null; moved: boolean } | null = null;
     const onDown = (e: PointerEvent) => {
+      st.moved = true;
       el.setPointerCapture(e.pointerId);
       const node = pick(e.clientX, e.clientY);
       down = { x: e.clientX, y: e.clientY, tx: st.tx, ty: st.ty, node, moved: false };
@@ -256,6 +275,7 @@ export function GraphView() {
       }
     };
     const onWheel = (e: WheelEvent) => {
+      st.moved = true;
       e.preventDefault();
       const r = el.getBoundingClientRect();
       const px = e.clientX - r.left, py = e.clientY - r.top;
@@ -272,6 +292,7 @@ export function GraphView() {
     el.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("resize", resize);
     return () => {
+      clearTimeout(fitTimer);
       s.stop();
       cancelAnimationFrame(raf);
       el.removeEventListener("pointerdown", onDown);
