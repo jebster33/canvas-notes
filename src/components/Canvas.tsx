@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GRID_SIZE, selectBoard, useStore } from "../lib/store";
 import type { CardNode, DrawTool, Side, Stroke } from "../lib/types";
 import { Card, CanvasCtx, type CanvasApi } from "../cards/Card";
-import { EdgeLayer, EdgeLabels } from "./EdgeLayer";
+import { CardBoundary } from "../cards/CardBoundary";
+import { EdgeLayer, EdgeLabels, EdgeBends } from "./EdgeLayer";
 import { StrokeLayer, StrokeShape } from "./StrokeLayer";
 import { SelectionBar } from "./SelectionBar";
 import { anchor, rectsIntersect, strokeBounds, strokeHit } from "../lib/geometry";
@@ -40,6 +41,7 @@ export function Canvas() {
   const pendingBox = useStore((s) => s.quickAdd?.rect);
   const tagFilter = useStore((s) => s.tagFilter);
   const presenting = useStore((s) => s.presenting);
+  const renderAll = useStore((s) => s.renderAll);
   const showMap = useMinimapPref();
   const ref = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Omit<Stroke, "id"> | null>(null);
@@ -489,7 +491,23 @@ export function Canvas() {
     return {};
   }, [vp.x, vp.y, vp.zoom, theme.grid, theme.gridColor]);
 
-  const sortedNodes = useMemo(() => board.nodes, [board.nodes]);
+  // Only mount cards near the visible area (plus anything selected or being edited),
+  // so huge boards stay smooth. A margin keeps cards ready just off screen.
+  const [size, setSize] = useState({ w: 1600, h: 1000 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const visibleNodes = useMemo(() => {
+    if (board.nodes.length < 150 || renderAll) return board.nodes;
+    const m = 400 / vp.zoom;
+    const view = { x: -vp.x / vp.zoom - m, y: -vp.y / vp.zoom - m, w: size.w / vp.zoom + m * 2, h: size.h / vp.zoom + m * 2 };
+    const keep = new Set([...sel.nodes, editingId ?? ""]);
+    return board.nodes.filter((n) => keep.has(n.id) || rectsIntersect(view, n));
+  }, [board.nodes, vp.x, vp.y, vp.zoom, size, sel.nodes, editingId, renderAll]);
   const linkFrom = link ? anchor(link.from, link.side) : null;
 
   return (
@@ -534,19 +552,21 @@ export function Canvas() {
               <circle cx={link.x} cy={link.y} r={5 / vp.zoom} fill="var(--accent)" />
             </svg>
           )}
-          {sortedNodes.map((n) => (
-            <Card
-              key={n.id}
-              node={n}
-              theme={theme}
-              selected={sel.nodes.includes(n.id)}
-              editing={editingId === n.id}
-              dropTarget={link?.target === n.id}
-              tagColors={board.tagColors}
-              dimmed={tagFilter.length > 0 && n.type !== "frame" && !(n.tags ?? []).some((t) => tagFilter.includes(t))}
-            />
+          {visibleNodes.map((n) => (
+            <CardBoundary key={n.id} node={n}>
+              <Card
+                node={n}
+                theme={theme}
+                selected={sel.nodes.includes(n.id)}
+                editing={editingId === n.id}
+                dropTarget={link?.target === n.id}
+                tagColors={board.tagColors}
+                dimmed={tagFilter.length > 0 && n.type !== "frame" && !(n.tags ?? []).some((t) => tagFilter.includes(t))}
+              />
+            </CardBoundary>
           ))}
           <EdgeLabels board={board} selected={sel.edges} byId={byId} />
+          {tool === "select" && <EdgeBends board={board} selected={sel.edges} byId={byId} />}
           <div style={{ position: "absolute", left: 0, top: 0, zIndex: 100000, pointerEvents: "none" }}>
             <div style={{ pointerEvents: tool === "select" ? "auto" : "none" }}>
               <StrokeLayer strokes={board.strokes} selected={sel.strokes} interactive={tool === "select"} onStrokeDown={onStrokeDown} />

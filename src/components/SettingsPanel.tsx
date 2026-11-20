@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  X, Type, LayoutGrid, Spline, Download, Upload, RotateCcw, FolderOpen, AlignLeft, AlignCenter, AlignRight, Minus, CornerDownRight, Square, Palette, Bell, Camera, History,
+  X, Type, LayoutGrid, Spline, Download, Upload, RotateCcw, FolderOpen, AlignLeft, AlignCenter, AlignRight, Minus, CornerDownRight, Square, Palette, Bell, Camera, History, Globe, FileDown, FileUp,
 } from "lucide-react";
 import { selectBoard, useStore } from "../lib/store";
 import type { CardStyle, CardType, EdgeShape, Theme } from "../lib/types";
@@ -9,6 +9,8 @@ import { DEFAULT_THEME, FONT_OPTIONS, fontValue, INKS, STICKY, SWATCHES, applyPr
 import { BoardPresetGrid, CardPresetGrid, MiniCard } from "./Presets";
 import { AppSettings } from "./AppSettings";
 import { openExport, openHistory } from "./Dialogs";
+import { exportMarkdown, importMarkdown } from "../lib/markdown";
+import { exportWebPage } from "../lib/sharePage";
 import { TYPE_META } from "../cards/Card";
 import { exportBoard, exportTheme, importBoardFile, importTheme } from "../lib/transfer";
 import { Select, Seg, Swatches, Toggle } from "./ui";
@@ -293,6 +295,8 @@ export function SettingsPanel() {
                 <button className="btn solid" onClick={() => exportBoard(board)}><Download size={14} />Export board</button>
                 <button className="btn outline" onClick={() => exportTheme(board)}><Download size={14} />Export settings only</button>
                 <button className="btn outline" onClick={openExport}><Camera size={14} />Export as image or PDF</button>
+                <button className="btn outline" onClick={() => exportWebPage(board)}><Globe size={14} />Share as web page (read-only HTML)</button>
+                <button className="btn outline" onClick={() => exportMarkdown(board)}><FileDown size={14} />Export as Markdown</button>
               </div>
             </div>
             <div className="sp-group">
@@ -305,6 +309,7 @@ export function SettingsPanel() {
               <div className="stack">
                 <button className="btn outline" onClick={importBoardFile}><Upload size={14} />Import board as a new board</button>
                 <button className="btn outline" onClick={importTheme}><Upload size={14} />Import settings into this board</button>
+                <button className="btn outline" onClick={importMarkdown}><FileUp size={14} />Import Markdown as notes</button>
               </div>
             </div>
             <div className="sp-group">

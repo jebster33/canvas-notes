@@ -201,7 +201,7 @@ export function Select<T extends string | number>({
       <button
         ref={btn}
         type="button"
-        className={"sel" + (compact ? " compact" : "") + (open ? " open" : "") + " " + className}
+        className={"dd" + (compact ? " compact" : "") + (open ? " open" : "") + " " + className}
         title={title}
         aria-label={title}
         aria-haspopup="listbox"

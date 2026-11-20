@@ -1,0 +1,10 @@
+# Deploys only the sync server (server/), not the desktop app.
+# After deploying, set CANVAS_SYNC_TOKEN under Site settings > Environment variables and redeploy.
+[build]
+  base = "server"
+  command = "echo 'nothing to build'"
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"

@@ -82,6 +82,8 @@ export interface TaskData {
   priority: Priority;
   progress: number;
   remind?: Reminder;
+  /** Seconds logged with the focus timer. */
+  spent?: number;
 }
 
 export type ChartKind = "bar" | "line" | "pie";
@@ -182,6 +184,12 @@ export interface CardNode {
   /** Frames: tinted area that groups the cards placed inside it. */
   frame?: { color: string };
   tags?: string[];
+  /** Emoji shown before the title. */
+  icon?: string;
+  /** Banner across the top of the card: an image asset or a color. */
+  cover?: { asset?: string; color?: string };
+  /** Daily notes: the day (YYYY-MM-DD) this note belongs to. */
+  daily?: string;
   z: number;
 }
 
@@ -196,6 +204,8 @@ export interface Edge {
   width?: number;
   dashed?: boolean;
   arrow?: boolean;
+  /** Bend points the line passes through (world coords). */
+  points?: { x: number; y: number }[];
   label: string;
 }
 

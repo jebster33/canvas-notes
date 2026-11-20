@@ -1,12 +1,15 @@
 import {
   Bold, Italic, Underline, Strikethrough, Heading1, Heading2, List, ListOrdered, ListChecks, Quote, Code,
   AlignLeft, AlignCenter, AlignRight, MessageSquare, Copy, Trash2, Network, RotateCcw, Spline, Minus,
-  CornerDownRight, ArrowRight, Type, ArrowLeftRight, Highlighter, Check, PaintBucket, Palette,
+  CornerDownRight, ArrowRight, Type, ArrowLeftRight, Highlighter, Check, PaintBucket, Palette, Link2, BookmarkPlus, Smile, Waypoints,
 } from "lucide-react";
 import { selectBoard, useStore } from "../lib/store";
 import { useEditorBus } from "../lib/editorBus";
 import { FONT_OPTIONS, fontValue, INKS, STICKY, SWATCHES, resolveStyle, typeStyle } from "../lib/theme";
 import { CardPresetGrid } from "./Presets";
+import { saveCardsTemplate } from "../lib/templates";
+import { CoverIconPicker } from "../cards/CardCover";
+import { useState } from "react";
 import { ArrangeButton, TagButton, FrameBar } from "./BarExtras";
 import { edgeGeometry } from "./EdgeLayer";
 import { strokeBounds } from "../lib/geometry";
@@ -153,7 +156,10 @@ function CardBar({ board }: { board: Board }) {
       </PopButton>
       <div className="sep" />
       {nodes.length === 1 && (
-        <button className="btn icon" title="Comments" onClick={() => setPanel("comments")}><MessageSquare size={15} /></button>
+        <>
+          <button className="btn icon" title="Comments" onClick={() => setPanel("comments")}><MessageSquare size={15} /></button>
+          <button className="btn icon" title="Links and backlinks" onClick={() => useStore.getState().panel !== "links" && setPanel("links")}><Link2 size={15} /></button>
+        </>
       )}
       {hasKids && (
         <button className="btn icon" title="Arrange connected cards as a tree" onClick={() => arrangeTree(first.id)}><Network size={15} /></button>
@@ -162,6 +168,12 @@ function CardBar({ board }: { board: Board }) {
         <button className="btn icon" title="Edit text (Enter)" onClick={() => setEditing(first.id)}><Type size={15} /></button>
       )}
       <TagButton board={board} ids={sel.nodes} />
+      <PopButton title="Icon and cover" label={<Smile size={15} />}>
+        {(close) => <CoverIconPicker ids={sel.nodes} close={close} />}
+      </PopButton>
+      <PopButton title="Save as template" label={<BookmarkPlus size={15} />}>
+        {(close) => <SaveTemplateForm ids={sel.nodes} close={close} />}
+      </PopButton>
       <button className="btn icon" title="Duplicate (Ctrl D)" onClick={duplicateSelection}><Copy size={15} /></button>
       {overridden && (
         <button className="btn icon" title="Reset to sheet settings" onClick={() => styleNodes(sel.nodes, null)}><RotateCcw size={15} /></button>
@@ -264,6 +276,9 @@ function EdgeBar({ board }: { board: Board }) {
       <button className="btn" title="Add or edit label" onClick={() => window.dispatchEvent(new CustomEvent("cn:edit-edge-label", { detail: e.id }))}>
         <Type size={15} />Label
       </button>
+      {e.points?.length ? (
+        <button className="btn icon" title="Remove bends" onClick={() => set({ points: undefined })}><Waypoints size={15} /></button>
+      ) : null}
       <div className="sep" />
       {(e.shape || e.color || e.width || e.arrow !== undefined) && (
         <button className="btn icon" title="Reset to sheet settings" onClick={() => set({ shape: undefined, color: undefined, width: undefined, arrow: undefined })}><RotateCcw size={15} /></button>
@@ -307,5 +322,19 @@ function StrokeBar({ board }: { board: Board }) {
       <div className="sep" />
       <button className="btn icon danger" title="Delete drawing" onClick={deleteSelection}><Trash2 size={15} /></button>
     </>
+  );
+}
+
+function SaveTemplateForm({ ids, close }: { ids: string[]; close(): void }) {
+  const [name, setName] = useState("");
+  const save = () => { saveCardsTemplate(name || "Template", ids); close(); };
+  return (
+    <div style={{ width: 240 }}>
+      <h4>Save {ids.length > 1 ? `${ids.length} cards` : "card"} as a template</h4>
+      <input className="field" autoFocus placeholder="Template name" value={name} onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") save(); }} />
+      <p className="hint-sm">Reuse it from the add-card menu (double-click or right-click the canvas).</p>
+      <button className="btn solid" style={{ width: "100%", justifyContent: "center" }} onClick={save}>Save template</button>
+    </div>
   );
 }

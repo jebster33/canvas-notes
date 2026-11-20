@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   PanelLeft, Undo2, Redo2, Waypoints, MessageSquare, Settings2, Presentation, Filter, MoreHorizontal, Camera, History, X,
-  LayoutDashboard, Columns3, CalendarDays, GanttChart,
+  LayoutDashboard, Columns3, CalendarDays, GanttChart, Link2, Globe, FileDown, FileUp, CalendarPlus, Sparkles,
 } from "lucide-react";
 import { flushSaves, selectBoard, useStore, type BoardView } from "./lib/store";
 import { Canvas, isTyping } from "./components/Canvas";
@@ -9,6 +9,8 @@ import { Dock, QuickAdd, ZoomControls, TOOL_KEYS, addCardAtCenter, toggleSnap } 
 import { Sidebar } from "./components/Sidebar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
+import { LinksPanel } from "./components/LinksPanel";
+import { AssistantPanel } from "./components/AssistantPanel";
 import { GraphView } from "./components/GraphView";
 import { Palette } from "./components/Palette";
 import { WindowControls } from "./components/WindowControls";
@@ -17,7 +19,16 @@ import { BellButton, NotificationCenter } from "./components/NotificationCenter"
 import { KanbanView, CalendarView, TimelineView } from "./components/TaskViews";
 import { Dialogs, openExport, openHistory } from "./components/Dialogs";
 import { TaskDetail } from "./components/TaskDetail";
+import { FindBar, openFind, useFind } from "./components/FindBar";
 import { HomeScreen } from "./components/HomeScreen";
+import { TemplatePicker } from "./components/TemplatePicker";
+import { FocusTimer } from "./components/FocusTimer";
+import { exportCalendar, openDailyNote } from "./lib/productivity";
+import { addChildIdea, addSiblingIdea } from "./lib/mindmap";
+import { useTemplates } from "./lib/templates";
+import { useLook } from "./lib/appearance";
+import { exportMarkdown, importMarkdown, looksLikeMarkdown, mdToHtml } from "./lib/markdown";
+import { exportWebPage } from "./lib/sharePage";
 import { AppSettingsDialog } from "./components/AppSettingsDialog";
 import { startupUpdateCheck } from "./lib/updates";
 import { PopButton } from "./components/ui";
@@ -48,6 +59,8 @@ export default function App() {
   useEffect(() => {
     useStore.getState().init().then(() => {
       startReminders();
+      useTemplates.getState().load();
+      useLook.getState().loadFonts();
       setTimeout(startupUpdateCheck, 3000);
     }).catch((e) => useStore.getState().flash("Couldn't open the vault: " + e));
     const flush = () => flushSaves();
@@ -79,7 +92,10 @@ export default function App() {
       const ctrl = e.ctrlKey || e.metaKey;
       const k = e.key.toLowerCase();
       if (ctrl && k === "k") { e.preventDefault(); st.setPalette(!st.paletteOpen); return; }
+      if (ctrl && (k === "f" || k === "h") && !st.homeOpen) { e.preventDefault(); openFind(k === "h" || useFind.getState().replace); return; }
       if (ctrl && k === "g") { e.preventDefault(); st.setGraph(!st.graphOpen); return; }
+      if (ctrl && e.shiftKey && k === "d") { e.preventDefault(); openDailyNote(); return; }
+      if (ctrl && k === "j") { e.preventDefault(); st.setPanel("assistant"); return; }
       if (ctrl && e.key === ",") { e.preventDefault(); st.setPanel("settings"); return; }
       if (ctrl && k === "\\") { e.preventDefault(); setSidebar((v) => !v); return; }
       if (e.key === "F5") { e.preventDefault(); startPresenting(); return; }
@@ -107,6 +123,9 @@ export default function App() {
       if (ctrl && e.key === "0") { e.preventDefault(); const c = viewCenter(); centerOn(c.x, c.y, 1); return; }
       if (e.shiftKey && e.code === "Digit1") { fitAll(); return; }
       if (e.key === "Delete" || e.key === "Backspace") { st.deleteSelection(); return; }
+      // Mind-map keys: Tab branches off the selected card, Ctrl+Enter adds a sibling.
+      if (e.key === "Tab" && !ctrl && st.sel.nodes.length === 1) { e.preventDefault(); addChildIdea(st.sel.nodes[0]); return; }
+      if (e.key === "Enter" && ctrl && st.sel.nodes.length === 1) { e.preventDefault(); addSiblingIdea(st.sel.nodes[0]); return; }
       if (e.key === "Enter" && st.sel.nodes.length === 1) {
         const n = st.board()?.nodes.find((n) => n.id === st.sel.nodes[0]);
         if (n && !["table", "link", "chart", "file", "voice"].includes(n.type)) { e.preventDefault(); st.setEditing(n.id); }
@@ -148,8 +167,13 @@ export default function App() {
           loadWebCard(id, text);
           return;
         }
-        const html = text.split(/\n{2,}/).map((p) => `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`).join("");
-        st.addNode("note", c.x, c.y, { title: text.split("\n")[0].slice(0, 60), html });
+        // Markdown keeps its formatting; plain text becomes paragraphs.
+        const md = looksLikeMarkdown(text);
+        const html = md
+          ? mdToHtml(text)
+          : text.split(/\n{2,}/).map((p) => `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>`).join("");
+        const first = text.split("\n")[0].replace(/^#+\s*/, "").slice(0, 60);
+        st.addNode("note", c.x, c.y, { title: first, html, h: md ? 300 : 180 });
         st.setEditing(null);
         return;
       }
@@ -199,17 +223,22 @@ export default function App() {
             <ZoomControls zoom={board.viewport.zoom} />
           </>
         )}
+        <FindBar />
         <Presenter />
         <QuickAdd />
         <NotificationCenter />
       </main>
       {presenting === null && panel === "settings" && <SettingsPanel />}
       {presenting === null && panel === "comments" && <CommentsPanel />}
+      {presenting === null && panel === "links" && <LinksPanel />}
+      {presenting === null && panel === "assistant" && <AssistantPanel />}
       {paletteOpen && <Palette />}
       <Dialogs />
       <TaskDetail />
       <HomeScreen />
       <AppSettingsDialog />
+      <TemplatePicker />
+      <FocusTimer />
       {toast && <div className="toast pop" role="status">{toast}</div>}
     </div>
   );
@@ -309,12 +338,18 @@ function Topbar({ sidebar, toggleSidebar }: { sidebar: boolean; toggleSidebar():
         <BellButton />
         <button className={"btn icon tip" + (graphOpen ? " on" : "")} data-tip="Graph  Ctrl G" aria-label="Graph" onClick={() => setGraph(!graphOpen)}><Waypoints size={16} /></button>
         <button className={"btn icon tip" + (panel === "comments" ? " on" : "")} data-tip="Comments" aria-label="Comments" onClick={() => setPanel("comments")}><MessageSquare size={16} /></button>
+        <button className={"btn icon tip" + (panel === "links" ? " on" : "")} data-tip="Links and backlinks" aria-label="Links" onClick={() => setPanel("links")}><Link2 size={16} /></button>
+        <button className={"btn icon tip" + (panel === "assistant" ? " on" : "")} data-tip="AI assistant  Ctrl J" aria-label="Assistant" onClick={() => setPanel("assistant")}><Sparkles size={16} /></button>
         <PopButton title="More" className="btn icon" align="right" label={<MoreHorizontal size={16} />}>
           {(close) => (
             <div className="stack more-menu">
               <button className="btn" onClick={() => { close(); openExport(); }}><Camera size={15} />Export as image or PDF</button>
               <button className="btn" onClick={() => { close(); openHistory(); }}><History size={15} />Version history</button>
               <button className="btn" onClick={() => { close(); startPresenting(); }}><Presentation size={15} />Present frames</button>
+              <button className="btn" onClick={() => { close(); exportWebPage(useStore.getState().board()!); }}><Globe size={15} />Share as web page</button>
+              <button className="btn" onClick={() => { close(); exportMarkdown(useStore.getState().board()!); }}><FileDown size={15} />Export as Markdown</button>
+              <button className="btn" onClick={() => { close(); importMarkdown(); }}><FileUp size={15} />Import Markdown</button>
+              <button className="btn" onClick={() => { close(); exportCalendar(useStore.getState().activeId ?? undefined); }}><CalendarPlus size={15} />Export tasks to calendar</button>
             </div>
           )}
         </PopButton>

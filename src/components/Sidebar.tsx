@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useKeepOnScreen } from "./ui";
-import { Plus, Search, Waypoints, MoreHorizontal, Pencil, Copy, Download, Trash2, Upload, FolderOpen, Camera, History, Home, ArrowRightLeft } from "lucide-react";
+import { Plus, Search, Waypoints, MoreHorizontal, Pencil, Copy, Download, Trash2, Upload, FolderOpen, Camera, History, Home, ArrowRightLeft, LayoutTemplate, CalendarCheck, CalendarPlus } from "lucide-react";
+import { openDailyNote, exportCalendar } from "../lib/productivity";
 import { WorkspaceSwitcher } from "./Workspaces";
+import { openTemplatePicker } from "./TemplatePicker";
+import { saveBoardTemplate } from "../lib/templates";
 import logoMark from "../assets/logo-mark.png";
 import { useStore, uid } from "../lib/store";
 import { INKS } from "../lib/theme";
@@ -14,7 +17,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const activeId = useStore((s) => s.activeId);
   const vault = useStore((s) => s.vault);
   const graphOpen = useStore((s) => s.graphOpen);
-  const { openBoard, createBoard, renameBoard, setPalette, setGraph, setVault } = useStore.getState();
+  const { openBoard, renameBoard, setPalette, setGraph, setVault } = useStore.getState();
   const [renaming, setRenaming] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const activeWs = useStore((s) => s.activeWs);
@@ -44,9 +47,14 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         <span>Search</span>
         <kbd className="kbd">Ctrl K</kbd>
       </button>
+      <button className="sb-search sb-today" onClick={() => openDailyNote()} title="Open today's note on the Journal board">
+        <CalendarCheck size={14} />
+        <span>Today's note</span>
+        <kbd className="kbd">Ctrl Shift D</kbd>
+      </button>
       <div className="sb-section">
         Boards
-        <button className="btn icon" style={{ width: 24, height: 24 }} title="New board" onClick={() => setRenaming(createBoard())}>
+        <button className="btn icon" style={{ width: 24, height: 24 }} title="New board" onClick={openTemplatePicker}>
           <Plus size={15} />
         </button>
       </div>
@@ -133,6 +141,8 @@ function BoardMenu({ id, x, y, onRename, close }: { id: string; x: number; y: nu
       <button onClick={() => (exportBoard(b), close())}><Download size={14} />Export board file</button>
       <button onClick={() => (useStore.getState().openBoard(id), close(), setTimeout(openExport, 50))}><Camera size={14} />Export as image or PDF</button>
       <button onClick={() => (useStore.getState().openBoard(id), close(), setTimeout(openHistory, 50))}><History size={14} />Version history</button>
+      <button onClick={() => { const n = window.prompt("Template name", b.name); if (n !== null) saveBoardTemplate(n, b); close(); }}><LayoutTemplate size={14} />Save as template</button>
+      <button onClick={() => (exportCalendar(id), close())}><CalendarPlus size={14} />Export tasks to calendar (.ics)</button>
       <MoveToWorkspace boardId={id} close={close} />
       <div className="menu-colors">
         {INKS.slice(2).map((c) => (

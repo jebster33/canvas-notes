@@ -4,6 +4,8 @@ import { selectBoard, useStore } from "../lib/store";
 import { boardStatuses, isDoneStatus, statusMeta, withProgress, withStatus } from "../lib/status";
 import { RichText } from "./RichText";
 import { Select, type SelectOption } from "../components/ui";
+import { FocusButton } from "../components/FocusTimer";
+import { fmtSpent } from "../lib/productivity";
 
 export const PRIORITY: Record<Priority, { label: string; color: string }> = {
   low: { label: "Low", color: "#5B9BD5" },
@@ -34,7 +36,7 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
     if (!body || editing) return;
     const extra = body.scrollHeight - body.clientHeight;
     if (extra > 1 && extra < 400) patchNode(node.id, { h: node.h + extra }, false);
-  }, [t.due, t.time, t.start, t.remind, node.h, node.id, editing, patchNode]);
+  }, [t.due, t.time, t.start, t.remind, t.spent, node.h, node.id, editing, patchNode]);
   const set = (p: Partial<TaskData>) => patchNode(node.id, { task: { ...t, ...p } });
   const board = useStore(selectBoard);
   const st = statusMeta(board, t.status);
@@ -45,6 +47,7 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
       <div className="status-row" ref={root} style={{ position: "relative" }}>
         <StatusPicker board={board} value={t.status} onChange={(id) => set(withStatus(board, t.progress, id))} />
         <ProgressBar value={t.progress} color={st.color} onChange={(p) => set(withProgress(board, t.status, p))} />
+        {board && <FocusButton boardId={board.id} nodeId={node.id} />}
       </div>
       <div className="task-meta" onPointerDown={stop} onKeyDown={stop}>
         <label>Owner</label>
@@ -52,7 +55,7 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
         <label>Due</label>
         <div className="due-row">
           <input type="date" value={t.due} onChange={(e) => set({ due: e.target.value })} style={{ colorScheme: "dark", color: overdue ? "#F27474" : undefined }} />
-          {t.due && <input type="time" value={t.time ?? ""} onChange={(e) => set({ time: e.target.value || undefined })} style={{ colorScheme: "dark" }} title="Time (optional)" />}
+          {t.due && <input type="time" value={t.time ?? ""} onChange={(e) => set({ time: e.target.value || undefined })} title="Time (optional)" />}
         </div>
         {t.due && (
           <>
@@ -63,7 +66,13 @@ export function TaskBody({ node, editing }: { node: CardNode; editing: boolean }
         {(t.start || editing) && (
           <>
             <label>Start</label>
-            <input type="date" value={t.start ?? ""} onChange={(e) => set({ start: e.target.value || undefined })} style={{ colorScheme: "dark" }} title="Start date, shown on the timeline" />
+            <input type="date" value={t.start ?? ""} onChange={(e) => set({ start: e.target.value || undefined })} title="Start date, shown on the timeline" />
+          </>
+        )}
+        {!!t.spent && (
+          <>
+            <label>Time</label>
+            <span className="spent" title="Logged with the focus timer">{fmtSpent(t.spent)}</span>
           </>
         )}
         <label>Priority</label>

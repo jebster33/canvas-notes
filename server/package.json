@@ -1,0 +1,16 @@
+{
+  "name": "canvas-notes-sync",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Self-hosted sync server for Canvas Notes (Node, Docker or Netlify).",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node node.mjs",
+    "test": "node --test test.mjs"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

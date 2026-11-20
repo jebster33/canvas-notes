@@ -2,7 +2,7 @@
 
 <h1 align="center">Canvas Notes</h1>
 
-<p align="center">A dark 2D brainstorming workspace for Windows: infinite canvas boards with cards, connectors, drawing, tables, charts, task boards, reminders and workspaces. Built with Tauri 2 (Rust) + React.</p>
+<p align="center">A 2D brainstorming workspace for Windows: infinite canvas boards with cards, connectors, drawing, tables, charts, task boards, mind maps, daily notes, reminders and workspaces, plus an AI assistant that runs on the AI tools you already use. Built with Tauri 2 (Rust) + React.</p>
 
 ![Canvas with notes, tasks, a budget table, a chart and a frame](docs/screenshots/canvas.png)
 
@@ -87,7 +87,45 @@ A vault folder, `Documents\Canvas Notes` by default (change it in the sidebar or
 - **Align / arrange**: select several cards for align, even spacing and tidy grid.
 - **Minimap** (button by the zoom controls), **Export as image or PDF** and **Version history** (⋯ menu in the top bar).
 
+- **Slash commands**: type `/` in any note for headings, lists, checklists, quotes, code, a divider, today's date or a `[[link]]`.
+- **Links panel** (chain icon in the top bar): everything that links to the selected card or board, and everything it links to: lines, `[[mentions]]` and board-link cards.
+- **Find and replace** (**Ctrl F** / **Ctrl H**): searches every card on the board, with match case, whole word and regex. Arrows jump between hits.
+- **Mind maps**: select a card and press **Tab** to branch off a new idea, **Ctrl Enter** for a sibling. The tree lays itself out.
+- **Templates**: new boards can start from a template (weekly plan, roadmap, study notes, mood board, mind map, meeting). Save your own boards or groups of cards as templates too.
+- **Daily note** (**Ctrl Shift D**, or *Today's note* in the sidebar): one note per day on a Journal board, laid out as a calendar, with the tasks due today already listed.
+- **Focus timer**: the timer button on a task starts a 25 minute focus session with breaks. Time spent is logged on the task.
+- **Calendar export**: save open tasks as an `.ics` file for Outlook, Google or Apple Calendar, with their reminders (⋯ menu, board menu or the Calendar view).
+- **Markdown**: export a board as Markdown, import `.md` files as notes, or paste Markdown straight onto the canvas.
+- **Share as web page**: save a board as one read-only HTML file anyone can open in a browser (pan and zoom included, nothing editable).
+- **Smarter lines**: elbow lines route around other cards. Select a line and drag the small dots to bend it.
+- **Card covers and icons**: give any card an emoji and a color, gradient or image banner (smiley button on the card bar).
+- **Light theme and your own fonts**: App settings → Appearance switches the app to light, dark or system and adds your own `.ttf` / `.otf` / `.woff` fonts. The *Daylight* and *Notebook* board looks are light too.
+- **Crash-proof cards**: if one card fails to draw, it shows a placeholder instead of taking the board down. Big boards only draw the cards on screen.
+
 Comments live in the right-hand Comments panel; cards with comments show a count badge.
+
+## AI assistant (no API keys)
+
+The assistant (sparkle icon in the top bar, or **Ctrl J**) runs an AI command-line tool that's already installed and signed in on your computer, so it uses the subscription you already have and Canvas Notes never sees a key:
+
+| Tool | Command it runs |
+| --- | --- |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `claude -p` (file and shell tools turned off) |
+| [Codex](https://github.com/openai/codex) | `codex exec --sandbox read-only` |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `gemini` |
+| [Grok CLI](https://github.com/superagent-ai/grok-cli) | `grok -p` |
+
+Pick a quick action (summarize, brainstorm ideas, make tasks, mind map, or ask anything) for the selected cards or the whole board. Answers can be added as connected cards or a note in one click. The prompt goes to the tool over standard input, never on the command line. You can set a model per tool in the panel.
+
+**Use your boards from the terminal too:** the [`canvas-notes` skill](skills/canvas-notes/SKILL.md) explains the vault format to AI agents. The app copies it into your vault's `.ai` folder as `AGENTS.md` (Codex), `CLAUDE.md` plus a Claude Code skill, `GEMINI.md` and `GROK.md`. Start your tool in that folder, or copy `skills/canvas-notes` into `~/.claude/skills/` to use it everywhere.
+
+## Sync with your own server (preview)
+
+There's no Canvas Notes cloud. To use your boards on several computers, host the tiny sync server in [`server/`](server) yourself, on Netlify, Docker or any machine with Node, then connect to it in **App settings → Sync**. Two computers changing the same board get a choice instead of a silent overwrite.
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/jebster33/canvas-notes)
+
+Setup steps, Docker and Node commands and the API are in [docs/SYNC.md](docs/SYNC.md). Upload and download are manual for now; automatic sync and live editing together are planned on top of the same server.
 
 ## Styling
 
@@ -100,6 +138,11 @@ Comments live in the right-hand Comments panel; cards with comments show a count
 | Action | Keys |
 | --- | --- |
 | Search everything | Ctrl K |
+| Find / replace on the board | Ctrl F / Ctrl H |
+| Today's daily note | Ctrl Shift D |
+| AI assistant | Ctrl J |
+| Mind map: new branch / sibling | Tab / Ctrl Enter |
+| Slash commands in a note | / |
 | Graph view | Ctrl G |
 | Sheet settings | Ctrl , |
 | Toggle sidebar | Ctrl \ |

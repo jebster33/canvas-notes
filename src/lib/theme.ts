@@ -1,6 +1,6 @@
 import type { CardNode, CardStyle, CardType, ShadowStyle, Theme } from "./types";
 
-export const FONTS: { label: string; value: string }[] = [
+export const FONTS: { label: string; value: string; custom?: boolean }[] = [
   { label: "Inter", value: "'Inter Variable', Inter, system-ui, sans-serif" },
   { label: "Segoe UI", value: "'Segoe UI', system-ui, sans-serif" },
   { label: "Georgia", value: "Georgia, 'Times New Roman', serif" },
@@ -172,6 +172,22 @@ export const BOARD_PRESETS: BoardPreset[] = [
       types: { task: { bg: "#1F2A3D", accent: "#9BC1FF" }, table: { bg: "#1E3330", accent: "#8BD8BD" }, sticky: { bg: "#F5A3D0", textColor: "#2A1020", border: "transparent", radius: 18 }, link: { bg: "#33291C", accent: "#F2C66D" } },
     },
   },
+  {
+    id: "daylight", name: "Daylight", preview: ["#F4F4F7", "#FFFFFF", "#7362F0", "#2F9E8F"],
+    theme: {
+      canvasBg: "#F4F4F7", gridColor: "#D5D6DF", edgeColor: "#9A9CB0",
+      card: { bg: "#FFFFFF", border: "#E2E3EA", accent: "#7362F0", textColor: "#1D1E26", shadow: "soft" },
+      types: { task: { accent: "#3B82F6" }, table: { accent: "#2F9E8F" }, sticky: { bg: "#FFE08A", textColor: "#3A2E00", border: "transparent", radius: 4 }, link: { accent: "#D9468F" } },
+    },
+  },
+  {
+    id: "notebook", name: "Notebook", preview: ["#FBF8F1", "#FFFDF8", "#B7793E", "#5B7F5A"],
+    theme: {
+      canvasBg: "#FBF8F1", grid: "lines", gridColor: "#ECE5D6", edgeColor: "#A89A82",
+      card: { bg: "#FFFDF8", border: "#E7DFCF", accent: "#B7793E", textColor: "#2B2620", radius: 6, shadow: "none", accentBar: "left", fontFamily: FONTS[2].value, padding: 14 },
+      types: { sticky: { bg: "#F7E3A1", textColor: "#3A2E10", border: "transparent", radius: 2 }, task: { accent: "#5B7F5A" }, table: { accent: "#4E7090" }, link: { accent: "#A0525C" } },
+    },
+  },
 ];
 
 /** Build a full theme from a preset, keeping the board's behavior settings. */
@@ -215,6 +231,14 @@ export const CARD_PRESETS: CardPreset[] = [
 
 export function hasOverrides(node: CardNode) {
   return Object.keys(node.style).length > 0;
+}
+
+/** True for light colors (used to flip overlay colors on light cards). */
+export function isLight(color: string) {
+  const h = color.trim().replace("#", "");
+  if (!/^[0-9a-f]{6}/i.test(h)) return false;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
 }
 
 /** Pick black or white text for a background, used for sticky notes & pills. */

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Waypoints, Settings2, LayoutDashboard, Presentation, Columns3, CalendarDays, GanttChart, Camera, History } from "lucide-react";
+import { Plus, Waypoints, Settings2, LayoutDashboard, Presentation, Columns3, CalendarDays, GanttChart, Camera, History, Globe, FileDown, FileUp, LayoutTemplate, CalendarCheck, CalendarPlus, Timer, Sparkles } from "lucide-react";
+import { exportCalendar, openDailyNote, useFocus } from "../lib/productivity";
+import { exportMarkdown, importMarkdown } from "../lib/markdown";
+import { exportWebPage } from "../lib/sharePage";
+import { openTemplatePicker } from "./TemplatePicker";
 import { openExport, openHistory } from "./Dialogs";
 import { startPresenting } from "./Presenter";
 import { useStore } from "../lib/store";
@@ -31,6 +35,17 @@ export function Palette() {
       { kind: "cmd", id: "timeline", title: "Show tasks on a timeline", icon: <GanttChart size={15} />, run: () => useStore.getState().setView("timeline") },
       { kind: "cmd", id: "export", title: "Export as image or PDF", icon: <Camera size={15} />, run: () => openExport() },
       { kind: "cmd", id: "history", title: "Version history", icon: <History size={15} />, run: () => openHistory() },
+      { kind: "cmd", id: "web", title: "Share board as web page", icon: <Globe size={15} />, run: () => exportWebPage(useStore.getState().board()!) },
+      { kind: "cmd", id: "mdout", title: "Export board as Markdown", icon: <FileDown size={15} />, run: () => exportMarkdown(useStore.getState().board()!) },
+      { kind: "cmd", id: "mdin", title: "Import Markdown", icon: <FileUp size={15} />, run: () => importMarkdown() },
+      { kind: "cmd", id: "ai", title: "Open the AI assistant", icon: <Sparkles size={15} />, run: () => useStore.getState().setPanel("assistant") },
+      { kind: "cmd", id: "daily", title: "Open today's daily note", icon: <CalendarCheck size={15} />, run: () => openDailyNote() },
+      { kind: "cmd", id: "ics", title: "Export tasks to calendar (.ics)", icon: <CalendarPlus size={15} />, run: () => exportCalendar() },
+      { kind: "cmd", id: "focus", title: "Start focus timer on the selected task", icon: <Timer size={15} />, run: () => {
+        const s = useStore.getState(); const b = s.board(); const n = b?.nodes.find((x) => x.id === s.sel.nodes[0] && x.task);
+        if (b && n) useFocus.getState().start(b.id, n.id); else s.flash("Select a task card first");
+      } },
+      { kind: "cmd", id: "newtpl", title: "New board from a template", icon: <LayoutTemplate size={15} />, run: () => openTemplatePicker() },
     ];
     const bs: Item[] = Object.values(boards)
       .sort((a, b) => a.order - b.order)

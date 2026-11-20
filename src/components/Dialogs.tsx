@@ -107,8 +107,8 @@ function ExportDialog({ onClose }: { onClose(): void }) {
     const saved = { sel: st.sel, editing: st.editingId };
     setBusy(true);
     // Hide selection outlines and toolbars while drawing the picture.
-    useStore.setState({ sel: { nodes: [], edges: [], strokes: [] }, editingId: null });
-    await new Promise((r) => setTimeout(r, 60));
+    useStore.setState({ sel: { nodes: [], edges: [], strokes: [] }, editingId: null, renderAll: true });
+    await new Promise((r) => setTimeout(r, 120));
     try {
       const { dataUrl, w, h } = await renderPng(board, ids, Number(scale), bg);
       const name = `${slug(board.name)}${ids ? "-selection" : ""}`;
@@ -128,7 +128,7 @@ function ExportDialog({ onClose }: { onClose(): void }) {
     } catch (e) {
       st.flash("Export failed: " + (e as Error).message);
     } finally {
-      useStore.setState({ sel: saved.sel, editingId: saved.editing });
+      useStore.setState({ sel: saved.sel, editingId: saved.editing, renderAll: false });
       setBusy(false);
     }
   };

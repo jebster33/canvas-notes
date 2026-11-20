@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { SlashMenu, SLASH_COMMANDS, filterSlash, readSlash, type SlashState } from "./SlashMenu";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextStyle from "@tiptap/extension-text-style";
@@ -97,17 +98,59 @@ function LiveEditor({ html, onChange, placeholder, className }: { html: string; 
   const setBus = useEditorBus((s) => s.set);
   const bump = useEditorBus((s) => s.bump);
   const latest = useRef(html);
+  const [slash, setSlash] = useState<SlashState | null>(null);
+  const slashRef = useRef<SlashState | null>(null);
+  slashRef.current = slash;
+  const editorRef = useRef<Editor | null>(null);
+  const pickSlash = (cmd: (typeof SLASH_COMMANDS)[number]) => {
+    const ed = editorRef.current, st = slashRef.current;
+    if (!ed || !st) return;
+    cmd.run(ed, { from: st.from, to: ed.state.selection.from });
+    setSlash(null);
+  };
+  const syncSlash = (ed: Editor) => {
+    const found = readSlash(ed);
+    setSlash((prev) => (found ? { ...found, index: prev && prev.from === found.from ? prev.index : 0 } : null));
+  };
   const editor = useEditor({
     extensions: extensions(placeholder),
     content: html,
     autofocus: "end",
-    editorProps: { attributes: { class: "rt " + className, spellcheck: "true" } },
+    editorProps: {
+      attributes: { class: "rt " + className, spellcheck: "true" },
+      // While the "/" menu is open, arrows/Enter/Tab/Esc drive the menu instead of the text.
+      handleKeyDown: (_view, e) => {
+        const st = slashRef.current;
+        if (!st) return false;
+        const items = filterSlash(st.query);
+        if (!items.length) return false;
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          const d = e.key === "ArrowDown" ? 1 : -1;
+          setSlash({ ...st, index: (st.index + d + items.length) % items.length });
+          return true;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          pickSlash(items[st.index % items.length]);
+          return true;
+        }
+        if (e.key === "Escape") {
+          setSlash(null);
+          return true;
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => {
       latest.current = editor.getHTML();
+      syncSlash(editor);
       bump();
     },
-    onSelectionUpdate: () => bump(),
+    onSelectionUpdate: ({ editor }) => {
+      syncSlash(editor);
+      bump();
+    },
   });
+  editorRef.current = editor;
 
   useEffect(() => {
     if (!editor) return;
@@ -139,12 +182,13 @@ function LiveEditor({ html, onChange, placeholder, className }: { html: string; 
     <div
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
-        if (e.key === "Escape") return;
+        if (e.key === "Escape" && !slashRef.current) return;
         e.stopPropagation();
       }}
       style={{ height: "100%", userSelect: "text" }}
     >
       <EditorContent editor={editor} />
+      {slash && <SlashMenu state={slash} onPick={pickSlash} />}
     </div>
   );
 }

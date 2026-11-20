@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Plus, Upload, ArrowRight, Keyboard, Bell, LayoutDashboard, Settings } from "lucide-react";
 import { useAppSettingsDialog } from "./AppSettingsDialog";
+import { openTemplatePicker } from "./TemplatePicker";
 import { useUpdates } from "../lib/updates";
 import { useStore } from "../lib/store";
 import { importBoardFile } from "../lib/transfer";
@@ -31,7 +32,7 @@ export function HomeScreen() {
   const workspaces = useStore((s) => s.workspaces);
   const boards = useStore((s) => s.boards);
   const activeWs = useStore((s) => s.activeWs);
-  const { setHome, openWorkspace, openBoard, createWorkspace, createBoard, setNotifOpen } = useStore.getState();
+  const { setHome, openWorkspace, openBoard, createWorkspace, setNotifOpen } = useStore.getState();
   const [naming, setNaming] = useState(false);
   const updateReady = useUpdates((s) => s.status === "available");
   const [name, setName] = useState("");
@@ -149,7 +150,7 @@ export function HomeScreen() {
           <section>
             <h2>Start something</h2>
             <div className="home-actions">
-              <button className="home-action" onClick={() => { createBoard(); setHome(false); }}>
+              <button className="home-action" onClick={() => { setHome(false); openTemplatePicker(); }}>
                 <LayoutDashboard size={18} />
                 <span><b>New board</b><small>In {wsOf(activeWs)?.name ?? "this workspace"}</small></span>
               </button>

@@ -271,3 +271,19 @@ export async function saveMeta(meta: VaultMeta) {
   if (isTauri) return invoke("write_meta", { data });
   localStorage.setItem(LS_META, data);
 }
+
+/** Small vault-level JSON files: "templates.json", "fonts.json", "sync.json". */
+export async function readVaultJson<T>(name: string, fallback: T): Promise<T> {
+  try {
+    const raw = isTauri ? await invoke<string>("read_vault_file", { name }) : localStorage.getItem("cn.vf." + name) || "";
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function writeVaultJson(name: string, value: unknown) {
+  const data = JSON.stringify(value);
+  if (isTauri) return invoke("write_vault_file", { name, data });
+  try { localStorage.setItem("cn.vf." + name, data); } catch { /* quota */ }
+}

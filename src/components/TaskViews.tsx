@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, CalendarDays, Bell, MoreHorizontal, Pencil, Trash2, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, CalendarDays, Bell, MoreHorizontal, Pencil, Trash2, ArrowLeft, ArrowRight, CheckCircle2, CalendarPlus } from "lucide-react";
+import { exportCalendar } from "../lib/productivity";
 import { selectBoard, useStore } from "../lib/store";
 import type { StatusDef } from "../lib/types";
 import { PRIORITY } from "../cards/TaskBody";
@@ -292,6 +293,7 @@ export function CalendarView() {
           <b>{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</b>
           <button className="btn icon" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight size={16} /></button>
           <button className="btn" onClick={() => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}><CalendarDays size={14} />Today</button>
+          <button className="btn" onClick={() => exportCalendar(all ? undefined : useStore.getState().activeId ?? undefined)} title="Save these tasks as an .ics file for Outlook, Google or Apple Calendar"><CalendarPlus size={14} />Export .ics</button>
         </div>
       </div>
       <div className="cal-wrap">

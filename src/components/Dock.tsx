@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  MousePointer2, Hand, Pen, Highlighter, Square, Circle, MoveUpRight, Minus, Eraser, Plus, ZoomIn, ZoomOut, Maximize, Magnet, Map as MapIcon,
+  MousePointer2, Hand, Pen, Highlighter, Square, Circle, MoveUpRight, Minus, Eraser, Plus, ZoomIn, ZoomOut, Maximize, Magnet, Map as MapIcon, LayoutTemplate,
 } from "lucide-react";
 import { useStore } from "../lib/store";
 import type { CardType, Tool } from "../lib/types";
@@ -10,6 +10,7 @@ import { TYPE_META } from "../cards/Card";
 import { fitAll, viewCenter, zoomBy, centerOn, toClient } from "../lib/viewport";
 import { Swatches, useKeepOnScreen } from "./ui";
 import { toggleMinimap, useMinimapPref } from "./Minimap";
+import { insertCardsTemplate, useTemplates } from "../lib/templates";
 
 const TOOLS: { t: Tool; icon: typeof Pen; label: string; key: string }[] = [
   { t: "select", icon: MousePointer2, label: "Select", key: "V" },
@@ -130,6 +131,8 @@ export function ZoomControls({ zoom }: { zoom: number }) {
 /** Menu shown after double-clicking the canvas or dropping a connector on empty space. */
 export function QuickAdd() {
   const qa = useStore((s) => s.quickAdd);
+  const templates = useTemplates((s) => s.list);
+  const cardTemplates = templates.filter((t) => t.kind === "cards" && t.name.toLowerCase().includes(q.toLowerCase()));
   const [q, setQ] = useState("");
   const [i, setI] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
@@ -196,6 +199,18 @@ export function QuickAdd() {
           if (e.key === "Escape") useStore.getState().setQuickAdd(null);
         }}
       />
+      {cardTemplates.length > 0 && !qa.from && (
+        <>
+          <div className="menu-label">Your templates</div>
+          {cardTemplates.map((t) => (
+            <button key={t.id} className="qa-item" onClick={() => { useStore.getState().setQuickAdd(null); insertCardsTemplate(t, qa.x, qa.y); }}>
+              <span className="qa-ic" style={{ background: "#8B7CF622", color: "#8B7CF6" }}><LayoutTemplate size={16} /></span>
+              <span><b>{t.name}</b><small>{t.nodes?.length ?? 0} card{t.nodes?.length === 1 ? "" : "s"}</small></span>
+            </button>
+          ))}
+          <div className="menu-label">Cards</div>
+        </>
+      )}
       {items.map((t, k) => {
         const M = TYPE_META[t];
         return (

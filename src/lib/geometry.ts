@@ -57,6 +57,97 @@ export function edgePath(p1: Pt, s1: Side, p2: Pt, s2: Side, shape: EdgeShape): 
   return { d, mid: { x: (pts[2].x + pts[3].x) / 2, y: (pts[2].y + pts[3].y) / 2 } };
 }
 
+type Rect = { x: number; y: number; w: number; h: number };
+
+/** Does the axis-aligned segment a→b pass through the rect (shrunk-in by nothing, grown by pad)? */
+function segHitsRect(a: Pt, b: Pt, r: Rect, pad = 10) {
+  const x0 = r.x - pad, y0 = r.y - pad, x1 = r.x + r.w + pad, y1 = r.y + r.h + pad;
+  if (a.y === b.y) return a.y > y0 && a.y < y1 && Math.max(a.x, b.x) > x0 && Math.min(a.x, b.x) < x1;
+  if (a.x === b.x) return a.x > x0 && a.x < x1 && Math.max(a.y, b.y) > y0 && Math.min(a.y, b.y) < y1;
+  return false;
+}
+const polyLen = (pts: Pt[]) => pts.reduce((s, p, i) => (i ? s + Math.abs(p.x - pts[i - 1].x) + Math.abs(p.y - pts[i - 1].y) : 0), 0);
+
+/**
+ * Elbow route that steers around other cards: tries a handful of right-angle
+ * routes (middle channel at different spots, or detours above/below or to the
+ * sides) and keeps the shortest one that doesn't cross a card.
+ */
+export function routeElbow(p1: Pt, s1: Side, p2: Pt, s2: Side, ends: Rect[], obstacles: Rect[]): Pt[] {
+  const stub = 24;
+  const d1 = DIR[s1], d2 = DIR[s2];
+  const a = { x: p1.x + d1.x * stub, y: p1.y + d1.y * stub };
+  const b = { x: p2.x + d2.x * stub, y: p2.y + d2.y * stub };
+  const horizontal = s1 === "left" || s1 === "right";
+  const cands: Pt[][] = [];
+  const fracs = [0.5, 0.3, 0.7, 0.15, 0.85];
+  if (horizontal) for (const f of fracs) { const mx = a.x + (b.x - a.x) * f; cands.push([{ x: mx, y: a.y }, { x: mx, y: b.y }]); }
+  else for (const f of fracs) { const my = a.y + (b.y - a.y) * f; cands.push([{ x: a.x, y: my }, { x: b.x, y: my }]); }
+  const all = [...ends, ...obstacles];
+  if (all.length) {
+    const top = Math.min(...all.map((r) => r.y)) - 30, bottom = Math.max(...all.map((r) => r.y + r.h)) + 30;
+    const left = Math.min(...all.map((r) => r.x)) - 30, right = Math.max(...all.map((r) => r.x + r.w)) + 30;
+    for (const y of [top, bottom]) cands.push([{ x: a.x, y }, { x: b.x, y }]);
+    for (const x of [left, right]) cands.push([{ x, y: a.y }, { x, y: b.y }]);
+    // Channels just beside each obstacle.
+    for (const r of obstacles.slice(0, 12)) {
+      if (horizontal) for (const mx of [r.x - 24, r.x + r.w + 24]) cands.push([{ x: mx, y: a.y }, { x: mx, y: b.y }]);
+      else for (const my of [r.y - 24, r.y + r.h + 24]) cands.push([{ x: a.x, y: my }, { x: b.x, y: my }]);
+    }
+  }
+  let best: Pt[] = [], bestScore = Infinity;
+  for (const mid of cands) {
+    const route = [a, ...mid, b];
+    let hits = 0;
+    for (let i = 0; i + 1 < route.length; i++) {
+      for (const r of obstacles) if (segHitsRect(route[i], route[i + 1], r)) hits++;
+      // The middle legs must not cut back through the two connected cards either.
+      if (i > 0 && i + 2 < route.length) for (const r of ends) if (segHitsRect(route[i], route[i + 1], r, 4)) hits++;
+    }
+    const score = hits * 1e6 + polyLen(route);
+    if (score < bestScore) { bestScore = score; best = route; }
+    if (!hits && mid === cands[0]) break; // the plain route is clear: keep it
+  }
+  // Drop zero-length legs.
+  const pts = [p1, ...best, p2].filter((p, i, arr) => i === 0 || p.x !== arr[i - 1].x || p.y !== arr[i - 1].y);
+  return pts;
+}
+
+/** Path through user-placed bend points. */
+export function bentPath(p1: Pt, s1: Side, p2: Pt, s2: Side, bends: Pt[], shape: EdgeShape): { d: string; mid: Pt; last: Pt } {
+  if (shape === "elbow") {
+    const stub = 24;
+    const a = { x: p1.x + DIR[s1].x * stub, y: p1.y + DIR[s1].y * stub };
+    const b = { x: p2.x + DIR[s2].x * stub, y: p2.y + DIR[s2].y * stub };
+    const pts: Pt[] = [p1, a];
+    const via = [...bends, b];
+    let horiz = s1 === "left" || s1 === "right";
+    for (const q of via) {
+      const prev = pts[pts.length - 1];
+      pts.push(horiz ? { x: q.x, y: prev.y } : { x: prev.x, y: q.y }, q);
+      horiz = !horiz;
+    }
+    pts.push(p2);
+    const d = "M" + pts.map((p) => `${p.x},${p.y}`).join(" L");
+    return { d, mid: bends[Math.floor(bends.length / 2)] ?? pts[2], last: b };
+  }
+  const pts = [p1, ...bends, p2];
+  if (shape === "straight") {
+    return { d: "M" + pts.map((p) => `${p.x},${p.y}`).join(" L"), mid: bends[Math.floor(bends.length / 2)], last: pts[pts.length - 2] };
+  }
+  // Smooth curve through every point (Catmull-Rom as cubic Béziers).
+  let d = `M${p1.x},${p1.y}`;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const p0 = pts[i - 1] ?? pts[i], pa = pts[i], pb = pts[i + 1], p3 = pts[i + 2] ?? pb;
+    const c1 = { x: pa.x + (pb.x - p0.x) / 6, y: pa.y + (pb.y - p0.y) / 6 };
+    const c2 = { x: pb.x - (p3.x - pa.x) / 6, y: pb.y - (p3.y - pa.y) / 6 };
+    d += ` C${c1.x},${c1.y} ${c2.x},${c2.y} ${pb.x},${pb.y}`;
+  }
+  return { d, mid: bends[Math.floor(bends.length / 2)], last: pts[pts.length - 2] };
+}
+
+export const polyPath = (pts: Pt[]) => "M" + pts.map((p) => `${p.x},${p.y}`).join(" L");
+
 export function rectsIntersect(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }

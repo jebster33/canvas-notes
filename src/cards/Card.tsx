@@ -3,7 +3,11 @@ import {
   FileText, CheckSquare, Table2, Image as ImageIcon, StickyNote, Link2, MessageSquare, Frame, BarChart3, Globe, Code2, Paperclip, Mic,
 } from "lucide-react";
 import type { Board, CardNode, CardType, Side, Theme } from "../lib/types";
-import { resolveStyle, hasOverrides, withOpacity } from "../lib/theme";
+import { resolveStyle, hasOverrides, withOpacity, isLight } from "../lib/theme";
+import { CardCover } from "./CardCover";
+
+/** Light cards get dark overlays (borders, tracks) and light form controls. */
+const inkVars = (bg: string) => (isLight(bg) ? { ["--ink-rgb" as string]: "0, 0, 0", colorScheme: "light" as const } : { ["--ink-rgb" as string]: "255, 255, 255", colorScheme: "dark" as const });
 import { useStore } from "../lib/store";
 import { RichText } from "./RichText";
 import { TaskBody } from "./TaskBody";
@@ -12,6 +16,7 @@ import { ImageBody, LinkBody } from "./MediaBodies";
 import { ChartBody } from "./ChartBody";
 import { WebBody, CodeBody, FileBody, VoiceBody } from "./ExtraBodies";
 import { tagColor } from "../lib/tags";
+import { useFind } from "../components/FindBar";
 
 export const TYPE_META: Record<CardType, { label: string; icon: typeof FileText; hint: string; key: string }> = {
   note: { label: "Note", icon: FileText, hint: "Rich text with headings and checklists", key: "N" },
@@ -134,6 +139,7 @@ const FrameCard = memo(function FrameCard({ node, selected, editing, dimmed }: P
 export const Card = memo(function Card({ node, theme, tagColors, selected, editing, dropTarget, dimmed }: Props) {
   const api = useContext(CanvasCtx);
   const { patchNode, setEditing, styleNodes, setSel, setPanel } = useStore.getState();
+  const findState = useFind((f) => (f.current === node.id ? 2 : f.hits.includes(node.id) ? 1 : 0));
   if (node.type === "frame") return <FrameCard node={node} selected={selected} editing={editing} dimmed={dimmed} />;
 
   const s = resolveStyle(theme, node);
@@ -171,6 +177,7 @@ export const Card = memo(function Card({ node, theme, tagColors, selected, editi
       className={[
         "card", "type-" + node.type, "shadow-" + s.shadow, s.opacity < 100 ? "glass" : "", selected ? "sel" : "",
         editing ? "editing" : "", dropTarget ? "drop-target" : "", dimmed ? "dimmed" : "",
+        findState === 2 ? "find-current" : findState === 1 ? "find-hit" : "",
       ].join(" ")}
       style={{
         left: node.x,
@@ -182,6 +189,7 @@ export const Card = memo(function Card({ node, theme, tagColors, selected, editi
         border: s.borderWidth > 0 ? `${s.borderWidth}px ${s.borderStyle} ${s.border}` : "none",
         ["--pad" as string]: `${s.padding}px`,
         ["--card-accent" as string]: s.accent,
+        ...inkVars(s.bg),
         borderRadius: s.radius,
         color: s.textColor,
         fontFamily: s.fontFamily,
@@ -208,9 +216,10 @@ export const Card = memo(function Card({ node, theme, tagColors, selected, editi
     >
       {showHead && s.accentBar !== "none" && <div className={"accent-bar " + s.accentBar} style={{ background: s.accent }} />}
       <div className="card-inner">
+        {node.cover && (node.cover.asset || node.cover.color) && <CardCover cover={node.cover} />}
         {showHead && (
           <div className="card-head">
-            <Icon size={15} className="type-ic" color={s.accent} />
+            {node.icon ? <span className="card-emoji">{node.icon}</span> : <Icon size={15} className="type-ic" color={s.accent} />}
             <input
               className="card-title"
               value={node.title}

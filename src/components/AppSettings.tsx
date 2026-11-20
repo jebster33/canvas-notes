@@ -5,7 +5,10 @@ import { openUrl } from "../lib/storage";
 import { useReminders } from "../lib/reminders";
 import { invokeSafe, isTauri } from "../lib/storage";
 import { useStore } from "../lib/store";
-import { Toggle } from "./ui";
+import { Toggle, Seg } from "./ui";
+import { SyncSettings } from "./SyncSettings";
+import { useLook, type AppTheme } from "../lib/appearance";
+import { Palette, Type, Trash2, Plus } from "lucide-react";
 
 /** Turn "CommandOrControl+Shift+Space" into "Ctrl + Shift + Space". */
 const pretty = (s: string) => s.replace("CommandOrControl", "Ctrl").split("+").join(" + ");
@@ -104,6 +107,8 @@ export function AppSettings() {
           </Row>
         )}
       </div>
+      <Appearance />
+      <SyncSettings />
       <div className="sp-group">
         <h4><Bell size={14} />Reminders</h4>
         <p className="hint">Applies to every board. Each task picks when to remind you from its own card.</p>
@@ -111,7 +116,7 @@ export function AppSettings() {
         <Row label="Desktop notifications"><Toggle label="Desktop notifications" on={prefs.desktop} onChange={(v) => setPrefs({ desktop: v })} /></Row>
         <Row label="Nudge when overdue"><Toggle label="Overdue nudge" on={prefs.overdue} onChange={(v) => setPrefs({ overdue: v })} /></Row>
         <Row label="Time for all-day tasks" hint="Tasks with a date but no time remind you at this time.">
-          <input className="field" type="time" value={prefs.morning} onChange={(e) => setPrefs({ morning: e.target.value || "09:00" })} style={{ width: 110, colorScheme: "dark" }} />
+          <input className="field" type="time" value={prefs.morning} onChange={(e) => setPrefs({ morning: e.target.value || "09:00" })} style={{ width: 110 }} />
         </Row>
       </div>
       {isTauri ? (
@@ -155,5 +160,31 @@ export function AppSettings() {
         <div className="sp-group"><p className="hint">Tray, startup and quick-capture settings appear in the desktop app.</p></div>
       )}
     </>
+  );
+}
+
+function Appearance() {
+  const look = useLook();
+  const flash = useStore((s) => s.flash);
+  return (
+    <div className="sp-group">
+      <h4><Palette size={14} />Appearance</h4>
+      <Row label="App theme" hint="Sidebar, menus and panels. Each board keeps its own colors; try the Daylight or Notebook presets in board settings.">
+        <Seg<AppTheme> value={look.theme} onChange={look.setTheme} options={[{ v: "dark", label: "Dark" }, { v: "light", label: "Light" }, { v: "system", label: "System" }]} />
+      </Row>
+      <h4 style={{ marginTop: 12 }}><Type size={14} />Your fonts</h4>
+      <p className="hint">Add .ttf, .otf, .woff or .woff2 files. They're copied into your vault and show up in every font picker.</p>
+      {look.fonts.length > 0 && (
+        <div className="font-list">
+          {look.fonts.map((f) => (
+            <div key={f.family} className="font-item" style={{ fontFamily: `'${f.family}'` }}>
+              {f.family}
+              <button className="btn icon" title="Remove font" aria-label={"Remove " + f.family} onClick={() => look.removeFont(f.family)}><Trash2 size={13} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button className="btn outline" onClick={() => look.addFont().then(() => flash("Font added")).catch((e) => flash(String(e.message ?? e)))}><Plus size={14} />Add a font file</button>
+    </div>
   );
 }

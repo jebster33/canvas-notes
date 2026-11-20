@@ -8,6 +8,7 @@
 //! The app keeps running in the system tray when its window is closed, so
 //! due-date reminders and the quick-capture hotkey keep working.
 
+mod ai;
 mod preview;
 mod updater;
 
@@ -222,6 +223,26 @@ fn write_meta(data: String, state: State<AppState>) -> CmdResult<()> {
     write_atomic(&path, data.as_bytes())
 }
 
+/// Small vault-level JSON files (templates, fonts, sync settings). Only known names are allowed.
+const VAULT_FILES: &[&str] = &["templates.json", "fonts.json", "sync.json"];
+
+#[tauri::command]
+fn read_vault_file(name: String, state: State<AppState>) -> CmdResult<String> {
+    if !VAULT_FILES.contains(&name.as_str()) {
+        return Err(format!("unknown vault file {name}"));
+    }
+    Ok(fs::read_to_string(state.vault.lock().unwrap().join(&name)).unwrap_or_default())
+}
+
+#[tauri::command]
+fn write_vault_file(name: String, data: String, state: State<AppState>) -> CmdResult<()> {
+    if !VAULT_FILES.contains(&name.as_str()) {
+        return Err(format!("unknown vault file {name}"));
+    }
+    serde_json::from_str::<serde_json::Value>(&data).map_err(err)?;
+    write_atomic(&state.vault.lock().unwrap().join(&name), data.as_bytes())
+}
+
 #[derive(Serialize)]
 struct Snapshot {
     ts: u64,
@@ -332,6 +353,29 @@ fn import_file(path: String) -> CmdResult<String> {
         return Err("file is larger than 512 MB".into());
     }
     fs::read_to_string(path).map_err(err)
+}
+
+/* ---------------- local AI assistants ---------------- */
+
+#[tauri::command]
+async fn ai_detect() -> Vec<ai::Tool> {
+    tauri::async_runtime::spawn_blocking(ai::detect).await.unwrap_or_default()
+}
+
+#[tauri::command]
+async fn ai_run(tool: String, prompt: String, model: Option<String>, state: State<'_, AppState>) -> CmdResult<String> {
+    if prompt.len() > 400_000 {
+        return Err("That's too much text to send in one go".into());
+    }
+    let vault = state.vault.lock().unwrap().clone();
+    tauri::async_runtime::spawn_blocking(move || ai::run(&tool, &prompt, model.as_deref(), &vault)).await.map_err(err)?
+}
+
+/// Write the agent instructions into the vault and return the folder (for "open in terminal" use).
+#[tauri::command]
+fn ai_prepare(state: State<AppState>) -> CmdResult<String> {
+    let vault = state.vault.lock().unwrap().clone();
+    ai::prepare_dir(&vault).map(|p| p.to_string_lossy().into_owned())
 }
 
 /* ---------------- web ---------------- */
@@ -541,6 +585,8 @@ pub fn run() {
             delete_board,
             read_meta,
             write_meta,
+            read_vault_file,
+            write_vault_file,
             list_history,
             read_history,
             snapshot_now,
@@ -560,6 +606,9 @@ pub fn run() {
             set_auto_update,
             check_update,
             install_update,
+            ai_detect,
+            ai_run,
+            ai_prepare,
             quit_app
         ])
         .run(tauri::generate_context!())

@@ -21,7 +21,7 @@ export interface Selection {
 }
 const EMPTY_SEL: Selection = { nodes: [], edges: [], strokes: [] };
 
-type Panel = "settings" | "comments" | null;
+type Panel = "settings" | "comments" | "links" | "assistant" | null;
 
 interface HistoryStack {
   past: Board[];
@@ -64,6 +64,8 @@ interface State {
   activeWs: string;
   /** The start menu (Home) is showing. */
   homeOpen: boolean;
+  /** Mount every card, even off screen (used while exporting an image). */
+  renderAll: boolean;
   /** Card to center on once its board is showing (set by search / graph). */
   focus: string | null;
 
@@ -271,6 +273,7 @@ export const useStore = create<State>((set, get) => ({
   workspaces: [],
   activeWs: "",
   homeOpen: false,
+  renderAll: false,
   focus: null,
 
   async init() {
@@ -504,6 +507,10 @@ export const useStore = create<State>((set, get) => ({
       ...b,
       updatedAt: Date.now(),
       nodes: b.nodes.map((n) => (set_.has(n.id) ? { ...n, x: n.x + dx, y: n.y + dy } : n)),
+      // Lines whose both cards move keep their bends in place relative to them.
+      edges: b.edges.some((e) => e.points?.length && set_.has(e.from) && set_.has(e.to))
+        ? b.edges.map((e) => (e.points?.length && set_.has(e.from) && set_.has(e.to) ? { ...e, points: e.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) } : e))
+        : b.edges,
     };
     set((s) => ({ boards: { ...s.boards, [b.id]: nb } }));
     scheduleSave(nb);

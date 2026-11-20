@@ -103,8 +103,8 @@ export function describeDue(n: CardNode, now = new Date()) {
   return `Due ${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}${time}`;
 }
 
-async function desktopNotify(title: string, body: string) {
-  if (!useReminders.getState().prefs.desktop) return;
+export async function desktopNotify(title: string, body: string, force = false) {
+  if (!force && !useReminders.getState().prefs.desktop) return;
   try {
     if (isTauri) {
       const n = await import("@tauri-apps/plugin-notification");

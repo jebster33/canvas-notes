@@ -6,6 +6,9 @@ import "./styles.css";
 import "./features.css";
 import App from "./App";
 import { CaptureApp } from "./components/CaptureApp";
+import { initAppearance } from "./lib/appearance";
+
+initAppearance();
 
 // The same bundle serves the main window and the small quick-capture window.
 const isCapture = new URLSearchParams(location.search).has("capture");
