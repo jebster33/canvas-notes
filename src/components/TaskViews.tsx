@@ -7,7 +7,7 @@ import { boardStatuses, isDoneStatus, statusMeta, withStatus, STATUS_COLORS } fr
 import { collectTasks, createTask, patchTask, isoDay, parseDay, addDays, type TaskRef } from "../lib/taskops";
 import { describeDue, dueAt } from "../lib/reminders";
 import { tagColor } from "../lib/tags";
-import { Seg } from "./ui";
+import { Seg, useKeepOnScreen } from "./ui";
 
 function useScope() {
   const [all, setAll] = useState(false);
@@ -112,7 +112,7 @@ function ListHeader({ s, count, index, total, editable }: { s: StatusDef; count:
           {menu && (
             <>
               <div className="menu-scrim" onPointerDown={() => setMenu(false)} />
-              <div className="pop menu kb-menu">
+              <ListMenuPanel>
                 <button onClick={() => { setEditing(true); setMenu(false); }}><Pencil size={14} />Rename</button>
                 <div className="menu-colors">
                   {STATUS_COLORS.map((c) => (
@@ -125,13 +125,19 @@ function ListHeader({ s, count, index, total, editable }: { s: StatusDef; count:
                 <button disabled={index === total - 1} onClick={() => { move(1); setMenu(false); }}><ArrowRight size={14} />Move right</button>
                 <hr />
                 <button className="danger" disabled={list.length <= 1} onClick={remove}><Trash2 size={14} />Delete list ({count ? `tasks move to ${list[Math.max(0, index - 1)] === s ? list[1]?.label : list[Math.max(0, index - 1)].label}` : "empty"})</button>
-              </div>
+              </ListMenuPanel>
             </>
           )}
         </div>
       )}
     </div>
   );
+}
+
+function ListMenuPanel({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(ref);
+  return <div ref={ref} className="pop menu kb-menu">{children}</div>;
 }
 
 export function KanbanView() {

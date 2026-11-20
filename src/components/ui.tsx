@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 
@@ -45,11 +45,17 @@ export function PopButton({
       <button className={className + (open ? " on" : "")} title={title} aria-label={title} onClick={() => setOpen((o) => !o)}>
         {label}
       </button>
-      {open && (
-        <div className="pop subpop" style={pos} onPointerDown={(e) => e.stopPropagation()}>
-          {typeof children === "function" ? children(() => setOpen(false)) : children}
-        </div>
-      )}
+      {open && <PopPanel pos={pos} onClose={() => setOpen(false)}>{children}</PopPanel>}
+    </div>
+  );
+}
+
+function PopPanel({ pos, onClose, children }: { pos: React.CSSProperties; onClose(): void; children: ReactNode | ((close: () => void) => ReactNode) }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(ref);
+  return (
+    <div ref={ref} className="pop subpop" style={pos} onPointerDown={(e) => e.stopPropagation()}>
+      {typeof children === "function" ? children(onClose) : children}
     </div>
   );
 }
@@ -181,9 +187,12 @@ export function Select<T extends string | number>({
   };
 
   // Open below, or above when there isn't room.
-  const maxH = 280;
-  const below = rect ? window.innerHeight - rect.bottom - 8 : 0;
-  const up = rect ? below < Math.min(maxH, options.length * 32 + 12) && rect.top > below : false;
+  const below = rect ? window.innerHeight - rect.bottom - 12 : 0;
+  const above = rect ? rect.top - 12 : 0;
+  const want = Math.min(320, options.length * 32 + 12);
+  const up = rect ? below < want && above > below : false;
+  // Cap to the room on the chosen side; the list scrolls inside.
+  const maxH = Math.max(120, Math.min(320, up ? above : below));
   const width = rect ? Math.max(rect.width, minWidth ?? 0, 150) : 0;
   const left = rect ? Math.min(rect.left, window.innerWidth - width - 8) : 0;
 
@@ -234,4 +243,38 @@ export function Select<T extends string | number>({
         )}
     </>
   );
+}
+
+/**
+ * Keep a popup fully inside the window: nudges it up/left when it would spill
+ * past an edge, and caps its height (scrolling inside) when it is taller than
+ * the window. Works for fixed and absolutely positioned popups that live
+ * outside the zoomed canvas.
+ */
+export function useKeepOnScreen<T extends HTMLElement>(ref: React.RefObject<T>, active = true, margin = 8) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !active) return;
+    const fit = () => {
+      el.style.translate = "";
+      el.style.maxHeight = "";
+      const r = el.getBoundingClientRect();
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const avail = vh - margin * 2;
+      const h = Math.min(r.height, avail);
+      if (r.height > avail) {
+        el.style.maxHeight = `${avail}px`;
+        el.style.overflowY = "auto";
+      }
+      let dx = 0, dy = 0;
+      if (r.top + h > vh - margin) dy = vh - margin - (r.top + h);
+      if (r.top + dy < margin) dy = margin - r.top;
+      if (r.right > vw - margin) dx = vw - margin - r.right;
+      if (r.left + dx < margin) dx = margin - r.left;
+      if (dx || dy) el.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  });
 }

@@ -9,6 +9,7 @@ import {
   isHeaderRow, cellKey, cellFormula, CALC_META, type FullTable,
 } from "../lib/table";
 import { ColumnWizard, RowWizard, CellWizard, type ColumnChoice } from "./TableWizard";
+import { useKeepOnScreen } from "../components/ui";
 
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 const ROW_COLORS = ["#2B2340", "#1F2A3D", "#1E3330", "#33291C", "#3A2228", "#38213A", "#2E2E1C"];
@@ -336,13 +337,16 @@ function CellMenu({
   };
 }) {
   const run = (f: () => void) => () => (f(), onClose());
+  const menuRef = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(menuRef);
   const rowColor = table.rows[menu.r]?.color;
   const cellColor = table.cellBg[cellKey(table, menu.r, menu.c)];
   return createPortal(
     <div className="menu-scrim" onPointerDown={onClose} onContextMenu={(e) => (e.preventDefault(), onClose())}>
       <div
+        ref={menuRef}
         className="pop menu table-menu"
-        style={{ left: Math.min(menu.x, window.innerWidth - 230), top: Math.min(menu.y, window.innerHeight - 420) }}
+        style={{ left: menu.x, top: menu.y }}
         onPointerDown={stop}
       >
         {canCalc && <button onClick={run(actions.calc)}><Calculator size={14} />Calculate this box…</button>}

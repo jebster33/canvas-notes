@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronsUpDown, Plus, Check, Pencil, Trash2 } from "lucide-react";
 import { useStore } from "../lib/store";
+import { useKeepOnScreen } from "./ui";
 import type { Workspace } from "../lib/types";
 
 export const WS_COLORS = ["#8B7CF6", "#6EA8FE", "#5EC2B0", "#A3D977", "#F2C66D", "#F2A65A", "#F28B82", "#F5A3D0"];
@@ -26,6 +27,8 @@ export function WorkspaceSwitcher() {
   const [confirm, setConfirm] = useState<string | null>(null);
   const [name, setName] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(menuRef, open);
   const ws = workspaces.find((w) => w.id === activeWs) ?? workspaces[0];
 
   useEffect(() => {
@@ -59,7 +62,7 @@ export function WorkspaceSwitcher() {
         <ChevronsUpDown size={14} />
       </button>
       {open && (
-        <div className="pop ws-menu">
+        <div className="pop ws-menu" ref={menuRef}>
           <div className="menu-label">Workspaces</div>
           {workspaces.map((w) => (
             <div key={w.id} className={"ws-row" + (w.id === activeWs ? " on" : "")}>

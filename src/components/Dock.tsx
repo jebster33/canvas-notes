@@ -8,7 +8,7 @@ import { CARD_TYPES } from "../lib/types";
 import { INKS } from "../lib/theme";
 import { TYPE_META } from "../cards/Card";
 import { fitAll, viewCenter, zoomBy, centerOn, toClient } from "../lib/viewport";
-import { Swatches } from "./ui";
+import { Swatches, useKeepOnScreen } from "./ui";
 import { toggleMinimap, useMinimapPref } from "./Minimap";
 
 const TOOLS: { t: Tool; icon: typeof Pen; label: string; key: string }[] = [
@@ -42,6 +42,8 @@ export function Dock() {
   const drawWidth = useStore((s) => s.drawWidth);
   const { setTool, setDraw } = useStore.getState();
   const [adding, setAdding] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(moreRef, adding);
   const drawing = tool !== "select" && tool !== "hand" && tool !== "eraser";
 
   return (
@@ -60,7 +62,7 @@ export function Dock() {
         </div>
       )}
       {adding && (
-        <div className="dock-sub pop" style={{ flexDirection: "column", alignItems: "stretch", padding: 6, gap: 0, width: 250 }}>
+        <div ref={moreRef} className="dock-sub pop dock-more" style={{ flexDirection: "column", alignItems: "stretch", padding: 6, gap: 0, width: 250 }}>
           {CARD_TYPES.map((t) => {
             const M = TYPE_META[t];
             return (
@@ -145,6 +147,7 @@ export function QuickAdd() {
     window.addEventListener("pointerdown", h, true);
     return () => window.removeEventListener("pointerdown", h, true);
   }, [qa]);
+  useKeepOnScreen(ref, !!qa);
   if (!qa) return null;
 
   const pick = (t: CardType) => {
@@ -170,12 +173,12 @@ export function QuickAdd() {
   };
 
   // A box menu sits beside the box (right side, or left if no room) so the box stays visible.
-  let left = Math.min(qa.sx, window.innerWidth - 260);
-  let top = Math.min(qa.sy, window.innerHeight - 380);
+  let left = qa.sx;
+  let top = qa.sy;
   if (qa.rect) {
     const a = toClient(qa.rect.x, qa.rect.y), b = toClient(qa.rect.x + qa.rect.w, qa.rect.y + qa.rect.h);
     left = b.x + 250 < window.innerWidth ? b.x + 10 : Math.max(8, a.x - 250);
-    top = Math.max(8, Math.min(a.y, window.innerHeight - 380));
+    top = a.y;
   }
   return (
     <div ref={ref} className="pop quick-add" style={{ left, top }}>

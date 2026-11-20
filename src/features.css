@@ -438,3 +438,9 @@ body.capture-body { background: transparent; }
 .app-settings { width: 460px; max-width: calc(100vw - 32px); max-height: 82vh; display: flex; flex-direction: column; overflow: hidden; align-self: flex-start; }
 .app-settings .sp-head { padding-top: 12px !important; }
 .app-settings .sp-head h3 { display: flex; align-items: center; gap: 8px; }
+
+/* ---------- fit on small windows ---------- */
+.dialog { max-height: calc(100vh - 32px); overflow-y: auto; }
+.quick-add, .dock-more, .subpop, .menu, .ws-menu, .kb-menu, .table-menu { overscroll-behavior: contain; }
+.dock-more { max-height: calc(100vh - 140px); overflow-y: auto; }
+.notif-center { max-height: calc(100vh - 70px); }

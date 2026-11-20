@@ -103,6 +103,22 @@ export function GraphView() {
     const ctx = el.getContext("2d")!;
     const st = state.current;
     let raf = 0;
+    let fallback = 0;
+    let pendingDraw = false;
+    // Redraw on the next frame, with a timer backup for windows that get few or no frames.
+    const schedule = () => {
+      if (pendingDraw) return;
+      pendingDraw = true;
+      const go = () => {
+        if (!pendingDraw) return;
+        pendingDraw = false;
+        cancelAnimationFrame(raf);
+        clearTimeout(fallback);
+        draw();
+      };
+      raf = requestAnimationFrame(go);
+      fallback = window.setTimeout(go, 80);
+    };
     const nodes = graph.nodes;
     const q = query.trim().toLowerCase();
     const match = (n: GNode) => !q || n.label.toLowerCase().includes(q) || n.text.toLowerCase().includes(q);
@@ -202,15 +218,13 @@ export function GraphView() {
       st.tx = w / 2 - ((x0 + x1) / 2) * k;
       st.ty = h / 2 - ((y0 + y1) / 2) * k;
     };
-    const fitTimer = window.setTimeout(() => { fit(); cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); }, 1600);
-    s.on("end", () => { fit(); cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); });
+    const fitTimer = window.setTimeout(() => { fit(); schedule(); }, 1600);
+    s.on("end", () => { fit(); schedule(); });
     s.on("tick", () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(draw);
+      schedule();
     });
     const redraw = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(draw);
+      schedule();
     };
 
     const toGraph = (cx: number, cy: number) => {
@@ -295,6 +309,7 @@ export function GraphView() {
       clearTimeout(fitTimer);
       s.stop();
       cancelAnimationFrame(raf);
+      clearTimeout(fallback);
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);

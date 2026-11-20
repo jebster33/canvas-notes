@@ -19,7 +19,7 @@ mkdirSync(out, { recursive: true });
 const profile = join(tmpdir(), `cn-shots-${Date.now()}`);
 const edge = spawn(EDGE, [
   "--headless=new", `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
-  `--window-size=${W},${H}`, "--hide-scrollbars", "--force-color-profile=srgb", "--no-first-run", "about:blank",
+  `--window-size=${W},${H}`, "--hide-scrollbars", "--disable-gpu", "--force-color-profile=srgb", "--no-first-run", "about:blank",
 ], { stdio: "ignore" });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -102,12 +102,7 @@ await shot("timeline");
 // 5. Graph view
 await evaluate(`(async () => { const s = ${store}; s.setView("canvas"); s.setGraph(true); return 1; })()`);
 await sleep(4000);
-// Zoom in with real wheel events centred on the graph.
-for (let i = 0; i < 3; i++) {
-  await send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 860, y: 450, deltaX: 0, deltaY: -160 });
-  await sleep(150);
-}
-await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1300, y: 820 });
+
 await shot("graph");
 
 // 6. Start menu

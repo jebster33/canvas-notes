@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useKeepOnScreen } from "./ui";
 import { Plus, Search, Waypoints, MoreHorizontal, Pencil, Copy, Download, Trash2, Upload, FolderOpen, Camera, History, Home, ArrowRightLeft } from "lucide-react";
 import { WorkspaceSwitcher } from "./Workspaces";
 import logoMark from "../assets/logo-mark.png";
@@ -123,8 +124,10 @@ function BoardMenu({ id, x, y, onRename, close }: { id: string; x: number; y: nu
   const b = useStore((s) => s.boards[id]);
   const { recolorBoard, importBoard, removeBoard } = useStore.getState();
   const [confirm, setConfirm] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(menuRef);
   return (
-    <div className="pop menu" style={{ left: Math.min(x, window.innerWidth - 200), top: Math.min(y, window.innerHeight - 260) }} onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={menuRef} className="pop menu" style={{ left: x, top: y }} onPointerDown={(e) => e.stopPropagation()}>
       <button onClick={() => (onRename(), close())}><Pencil size={14} />Rename</button>
       <button onClick={() => (importBoard({ ...structuredClone(b), id: uid(), name: b.name + " copy" }), close())}><Copy size={14} />Duplicate</button>
       <button onClick={() => (exportBoard(b), close())}><Download size={14} />Export board file</button>
